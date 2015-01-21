@@ -125,32 +125,41 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
 		 * Activation Hook - Confirm site is using required plugin(s)
 		 */
 		function activation_hook() {
-			// Gravity Forms
-			if( !class_exists( 'GFCommon' ) ) {
+			// Check for Gravity Forms and WP User Avatar
+			if( !class_exists( 'WP_User_Avatar' ) || !class_exists( 'GFCommon' ) ) {
 				deactivate_plugins( plugin_basename( __FILE__ ) );
-				$message = $this->admin_message( 'GF User Populate requires Gravity Forms', 'error' );
-				$message_function = create_function( '', 'echo ' . $message . ';');
-	            add_action( 'admin_notices', $message_function );
-	            add_action( 'network_admin_notices', $message_function );
-				
-			// WP User Avatar
-			} elseif( !class_exists( 'WP_User_Avatar' ) ) {
-				deactivate_plugins( plugin_basename( __FILE__ ) );
-				$message = $this->admin_message( 'GF User Populate requires WP User Avatar', 'error' );
-				$message_function = create_function( '', 'echo ' . $message . ';');
-	            add_action( 'admin_notices', $message_function );
-	            add_action( 'network_admin_notices', $message_function );
+				add_action( 'admin_notices', array( $this, 'deactivate_message' ) );
+				add_action( 'network_admin_notices', array( $this, 'deactivate_message' ) );
 			}
 		}
 		
 		/**
 		 * Return plugin error admin message
 		 */
-	    public static function admin_message( $message = '', $class = '' ) {
-			if( !empty( $class ) && !empty( $message ) ){
-		        return '<div id="message" class="' . $class . ' gfup-message"><p>' . $message . '</p></div>';
+		public static function deactivate_message( $requirements = array(), $class = 'error' ) {
+			deactivate_plugins( plugin_basename( __FILE__ ) );
+			
+			if( !class_exists( 'WP_User_Avatar' ) ) {
+				$requirements[] = 'WP User Avatar';
 			}
-	    }
+			if( !class_exists( 'GFCommon' ) ) {
+				$requirements[] = 'Gravity Forms';
+			}
+			
+			if( !empty( $requirements ) ) {
+				$message = 'GF User Populate deactived, requires: ';
+				foreach( $requirements as $key => $value ) {
+					$message .= $value . ', ';
+				}
+				$message = rtrim( $message, ', ' );
+			} else {
+				$message = "GF User Populate deactived for unknown reason, please check requirements";
+			}
+			
+			echo '<div id="message" class="' . $class . ' gfup-message"><p>' . $message . '</p></div>';
+			if ( isset( $_GET['activate'] ) )
+				unset( $_GET['activate'] );
+		}
 
  		/**
  		 * Include required files and starts the plugin
