@@ -168,8 +168,90 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
  			// Gravity form custom dropdown and routing
  			add_filter( 'gform_pre_render_1', array( $this, 'populate_user_email_list' ) );
  			//add_filter( 'gform_notification_1', array( $this, 'route_gf_notification' ), 10, 3 ); 
- 			add_filter( 'gform_notification_1', array( $this, 'add_attachments_to_gf' ), 10, 3 );
+ 			//add_filter( 'gform_notification_1', array( $this, 'add_attachments_to_gf' ), 10, 3 );
+			
+			// Add Avatar form field
+			add_filter( 'get_avatar', array( $this, 'get_avatar' ), 10, 5 );
  		}
+		
+		public function get_avatar( $avatar, $id_or_email, $size, $default, $alt ) {
+				
+			$user = false;
+			// get the user
+			if ( is_numeric( $id_or_email ) ) {
+				$id = (int) $id_or_email;
+				$user = get_user_by( 'id' , $id );
+			} elseif ( is_object( $id_or_email ) ) {
+				if ( ! empty( $id_or_email->user_id ) ) {
+					$id = (int) $id_or_email->user_id;
+					$user = get_user_by( 'id' , $id );
+				}
+			} else {
+				$user = get_user_by( 'email', $id_or_email );	
+			}
+			
+			// ------- Taken from wp-includes/pluggable.php:get_avatar() ------ //
+			if ( empty($default) ) {
+				$avatar_default = get_option('avatar_default');
+				if ( empty($avatar_default) )
+					$default = 'mystery';
+				else
+					$default = $avatar_default;
+			}
+
+			if ( !empty($email) )
+				$email_hash = md5( strtolower( trim( $email ) ) );
+
+			if ( is_ssl() ) {
+				$host = 'https://secure.gravatar.com';
+			} else {
+				if ( !empty($email) )
+					$host = sprintf( "http://%d.gravatar.com", ( hexdec( $email_hash[0] ) % 2 ) );
+				else
+					$host = 'http://0.gravatar.com';
+			}
+
+			if ( 'mystery' == $default )
+				$default = "$host/avatar/ad516503a11cd5ca435acc9bb6523536?s={$size}"; // ad516503a11cd5ca435acc9bb6523536 == md5('unknown@gravatar.com')
+			elseif ( 'blank' == $default )
+				$default = $email ? 'blank' : includes_url( 'images/blank.gif' );
+			elseif ( !empty($email) && 'gravatar_default' == $default )
+				$default = '';
+			elseif ( 'gravatar_default' == $default )
+				$default = "$host/avatar/?s={$size}";
+			elseif ( empty($email) )
+				$default = "$host/avatar/?d=$default&amp;s={$size}";
+			elseif ( strpos($default, 'http://') === 0 )
+				$default = add_query_arg( 's', $size, $default );
+
+			// if we have a user, set the avatar based on WP_User_Avatar
+			if( $user && is_object( $user ) ) {
+				global $blog_id, $wpdb;
+				$avatar = esc_url( get_user_meta( $user->data->ID, $wpdb->get_blog_prefix( $blog_id ) . 'user_avatar', true ) );
+			}
+			
+			// make sure there is an avatar user meta first
+			if ( $avatar ) {
+				$avatar = "<img alt='{$alt}' src='{$avatar}' class='avatar avatar-{$size} photo' height='{$size}' width='{$size}' />";
+			} elseif ( !empty($email) ) {
+				$out = "$host/avatar/";
+				$out .= $email_hash;
+				$out .= '?s='.$size;
+				$out .= '&amp;d=' . urlencode( $default );
+
+				$rating = get_option('avatar_rating');
+				if ( !empty( $rating ) )
+					$out .= "&amp;r={$rating}";
+
+				$out = str_replace( '&#038;', '&amp;', esc_url( $out ) );
+				$avatar = "<img alt='{$safe_alt}' src='{$out}' class='avatar avatar-{$size} photo' height='{$size}' width='{$size}' />";
+			} else {
+				$out = esc_url( $default );
+				$avatar = "<img alt='{$safe_alt}' src='{$out}' class='avatar avatar-{$size} photo avatar-default' height='{$size}' width='{$size}' />";
+			}
+			
+			return $avatar;
+		}
 		
  		// Gravity Forms User Populate
 		function populate_user_email_list( $form ) {
