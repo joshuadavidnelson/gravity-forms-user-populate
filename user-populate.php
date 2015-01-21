@@ -50,15 +50,7 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
  			}
  			return self::$instance;
  		}
-		
- 		/**
- 		 * Build the class
- 		 */
- 		public function __construct() {
- 			// Activation Hook
- 			register_activation_hook( __FILE__, array( $this, 'activation_hook' ) );
- 		}
-
+ 		
  		/**
  		 * Throw error on object clone
  		 *
@@ -85,6 +77,47 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
  			// Unserializing instances of the class is forbidden
  			_doing_it_wrong( __FUNCTION__, __( 'Cheatin&#8217; huh?', 'eec' ), '1.0.0' );
  		}
+		
+		
+		public function plugins_loaded() {
+			if ( ! self::is_gfup_supported() ) {
+				$message = __( 'GF User Populate Requires Gravity Forms and WP User Avatar', 'gfup' );
+				add_action( 'admin_notices', array( $this, 'deactivate_admin_notice' ) );
+				add_action( 'admin_init', array( $this, 'plugin_deactivate' ) );
+			}
+		}
+		
+		function plugin_deactivate() {
+			deactivate_plugins( plugin_basename( __FILE__ ) );
+		}
+		
+		private static function is_gfup_supported() {
+			if( class_exists( 'WP_User_Avatar' ) && class_exists( 'GFCommon' ) ) {
+				return true;
+			}
+			return false;
+		}
+		
+		/**
+		 *  Output admin notices
+		 *
+		 * @since 1.0.0
+		 *
+		 * @uses  get_site_transient()
+		 * @uses  get_transient()
+		 * @uses  delete_site_transient()
+		 * @uses  delete_transient()
+		 *
+		 * @return void
+		 */
+		public function deactivate_admin_notice( $message = '', $class = 'error' ) {
+			if( empty( $message ) ) {
+				$message = __( 'GF User Populate has been deactived. It requires Gravity Forms and WP User Avatar plugins', 'gfup' );
+			}
+			echo '<div class="' . $class . '"><p>' . $message . '</p></div>';
+			if ( isset( $_GET['activate'] ) )
+				unset( $_GET['activate'] );
+		}
 		
  		/**
  		 * Setup plugin constants
@@ -120,46 +153,6 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
  				define( 'GFUP_DOMAIN', 'gfup' );
  			}
  		}
-		
-		/**
-		 * Activation Hook - Confirm site is using required plugin(s)
-		 */
-		function activation_hook() {
-			// Check for Gravity Forms and WP User Avatar
-			if( !class_exists( 'WP_User_Avatar' ) || !class_exists( 'GFCommon' ) ) {
-				deactivate_plugins( plugin_basename( __FILE__ ) );
-				add_action( 'admin_notices', array( $this, 'deactivate_message' ) );
-				add_action( 'network_admin_notices', array( $this, 'deactivate_message' ) );
-			}
-		}
-		
-		/**
-		 * Return plugin error admin message
-		 */
-		public static function deactivate_message( $requirements = array(), $class = 'error' ) {
-			deactivate_plugins( plugin_basename( __FILE__ ) );
-			
-			if( !class_exists( 'WP_User_Avatar' ) ) {
-				$requirements[] = 'WP User Avatar';
-			}
-			if( !class_exists( 'GFCommon' ) ) {
-				$requirements[] = 'Gravity Forms';
-			}
-			
-			if( !empty( $requirements ) ) {
-				$message = 'GF User Populate deactived, requires: ';
-				foreach( $requirements as $key => $value ) {
-					$message .= $value . ', ';
-				}
-				$message = rtrim( $message, ', ' );
-			} else {
-				$message = "GF User Populate deactived for unknown reason, please check requirements";
-			}
-			
-			echo '<div id="message" class="' . $class . ' gfup-message"><p>' . $message . '</p></div>';
-			if ( isset( $_GET['activate'] ) )
-				unset( $_GET['activate'] );
-		}
 
  		/**
  		 * Include required files and starts the plugin
@@ -168,7 +161,8 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
  		 * @since 1.0.0
  		 * @return void
  		 */
- 		private function includes() {			
+ 		private function includes() {
+ 			add_action( 'plugins_loaded', array( $this, 'plugins_loaded' ) );
  			add_action( 'plugins_loaded', array( $this, 'init' ) );
  		}
 		
