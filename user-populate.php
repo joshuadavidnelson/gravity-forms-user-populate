@@ -125,20 +125,30 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
 		 * Activation Hook - Confirm site is using required plugin(s)
 		 */
 		function activation_hook() {
+			// Gravity Forms
 			if( !class_exists( 'GFCommon' ) ) {
 				deactivate_plugins( plugin_basename( __FILE__ ) );
-	            add_action( 'admin_notices', array( $this, 'display_admin_message' ) );
-	            add_action( 'network_admin_notices', array( $this, 'display_admin_message' ) );
+				$message = $this->admin_message( 'GF User Populate requires Gravity Forms', 'error' );
+				$message_function = create_function( '', 'echo ' . $message . ';');
+	            add_action( 'admin_notices', $message_function );
+	            add_action( 'network_admin_notices', $message_function );
+				
+			// WP User Avatar
+			} elseif( !class_exists( 'WP_User_Avatar' ) ) {
+				deactivate_plugins( plugin_basename( __FILE__ ) );
+				$message = $this->admin_message( 'GF User Populate requires WP User Avatar', 'error' );
+				$message_function = create_function( '', 'echo ' . $message . ';');
+	            add_action( 'admin_notices', $message_function );
+	            add_action( 'network_admin_notices', $message_function );
 			}
 		}
 		
 		/**
-		 * Display plugin error admin message
-		 *
+		 * Return plugin error admin message
 		 */
-	    public static function display_admin_message( $message = '', $class = '' ) {
+	    public static function admin_message( $message = '', $class = '' ) {
 			if( !empty( $class ) && !empty( $message ) ){
-		        echo '<div id="message" class="' . $class . ' gfup-message">' . $message . '</div>';
+		        return '<div id="message" class="' . $class . ' gfup-message"><p>' . $message . '</p></div>';
 			}
 	    }
 
