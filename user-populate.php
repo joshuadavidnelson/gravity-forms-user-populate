@@ -198,6 +198,11 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
 				else
 					$default = $avatar_default;
 			}
+			
+			if ( false === $alt)
+				$safe_alt = '';
+			else
+				$safe_alt = esc_attr( $alt );
 
 			if ( !empty($email) )
 				$email_hash = md5( strtolower( trim( $email ) ) );
