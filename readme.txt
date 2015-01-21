@@ -23,4 +23,4 @@ Adds the ability to auto populate a form field with usernames
 == Changelog ==
 
 = 1.0.0 (2015-01-20) =
-* Initial release (Bill Erickson).
+* Initial release.
