@@ -10,8 +10,10 @@
  * GitHub Branch: master
  * License: GPL2
  */
+
 // Exit if accessed directly
 if ( ! defined( 'ABSPATH' ) ) exit;
+
 /**
  * Main GF_User_Populate Class
  *
@@ -144,37 +146,6 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
 		}
 		
  		/**
- 		 * Setup plugin constants
- 		 *
- 		 * @access private
- 		 * @since 1.0.0
- 		 * @return void
- 		 */
- 		private function setup_constants() {
- 			// Plugin version
- 			if ( ! defined( 'GFUP_VERSION' ) ) {
- 				define( 'GFUP_VERSION', '1.0.0' );
- 			}
- 			// Plugin Folder Path
- 			if ( ! defined( 'GFUP_DIR' ) ) {
- 				define( 'GFUP_DIR', plugin_dir_path( __FILE__ ) );
- 			}
- 			// Plugin Folder URL
- 			if ( ! defined( 'GFUP_URL' ) ) {
- 				define( 'GFUP_URL', plugin_dir_url( __FILE__ ) );
- 			}
- 			// Plugin Root File
- 			if ( ! defined( 'GFUP_FILE' ) ) {
- 				define( 'GFUP_FILE', __FILE__ );
- 			}
-			
- 			// Plugin Text Domain
- 			if ( ! defined( 'GFUP_DOMAIN' ) ) {
- 				define( 'GFUP_DOMAIN', 'gfup' );
- 			}
- 		}
-		
- 		/**
  		 * Initialize the plugin hooks
  		 *
  		 * @since 1.0.0
@@ -230,8 +201,10 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
 				$safe_alt = '';
 			else
 				$safe_alt = esc_attr( $alt );
+
 			if ( !empty($email) )
 				$email_hash = md5( strtolower( trim( $email ) ) );
+
 			if ( is_ssl() ) {
 				$host = 'https://secure.gravatar.com';
 			} else {
@@ -240,6 +213,7 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
 				else
 					$host = 'http://0.gravatar.com';
 			}
+
 			if ( 'mystery' == $default )
 				$default = "$host/avatar/ad516503a11cd5ca435acc9bb6523536?s={$size}"; // ad516503a11cd5ca435acc9bb6523536 == md5('unknown@gravatar.com')
 			elseif ( 'blank' == $default )
@@ -252,6 +226,7 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
 				$default = "$host/avatar/?d=$default&amp;s={$size}";
 			elseif ( strpos($default, 'http://') === 0 )
 				$default = add_query_arg( 's', $size, $default );
+
 			// if we have a user, set the avatar based on WP_User_Avatar
 			if( $user && is_object( $user ) ) {
 				global $blog_id, $wpdb;
@@ -266,9 +241,11 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
 				$out .= $email_hash;
 				$out .= '?s='.$size;
 				$out .= '&amp;d=' . urlencode( $default );
+
 				$rating = get_option('avatar_rating');
 				if ( !empty( $rating ) )
 					$out .= "&amp;r={$rating}";
+
 				$out = str_replace( '&#038;', '&amp;', esc_url( $out ) );
 				$avatar = "<img alt='{$safe_alt}' src='{$out}' class='avatar avatar-{$size} photo' height='{$size}' width='{$size}' />";
 			} else {
@@ -346,23 +323,34 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
 			if( isset( $entry['post_id'] ) ) {
 			    $post = get_post( $entry['post_id'] );
 			} else {
+				gfup_log_me( 'Post id not set' );
+				return;
+			}
+			
+			// Bail if the post don't work
+			if( is_null( $post ) ) {
+				gfup_log_me( 'Invalid post' );
 				return;
 			}
 			
 			// Set Post Author, if existing author is chosen
 			if( isset( $entry[ $this->author_conditional_gf_field_id ] ) && $entry[$this->author_conditional_gf_field_id] == "Yes" && isset( $entry[ $this->author_gf_field_id ] ) && !empty( $entry[ $this->author_gf_field_id ] ) ) {
 				// set post author to author field
-				// verify that the id is a valid author?
+				// verify that the id is a valid author
 				if( get_user_by( 'id', $entry[ $this->author_gf_field_id ] ) )
 					$post->post_author = $entry[ $this->author_gf_field_id ];
 			}
 			
 			// Clean up images upload and create array for gallery field
-			$images = stripslashes( $entry[$this->images_gf_field_id] );
-			$images = json_decode( $images, true );
-			$gallery = array();
-			foreach( $images as $key => $value ) {
-				$gallery[] = $this->get_image_id( $value );
+			if( isset( $entry[$this->images_gf_field_id] ) ) {
+				$images = stripslashes( $entry[$this->images_gf_field_id] );
+				$images = json_decode( $images, true );
+				$gallery = array();
+				foreach( $images as $key => $value ) {
+					$gallery[] = $this->get_image_id( $value );
+				}
+			} else {
+				gfup_log_me( 'The gallery field is empty' );
 			}
 			
 			// Update gallery field with array
