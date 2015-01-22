@@ -8,10 +8,8 @@
  * Author URI: josh@joshuadnelson.com
  * License: GPL2
  */
-
 // Exit if accessed directly
 if ( ! defined( 'ABSPATH' ) ) exit;
-
 /**
  * Main GF_User_Populate Class
  *
@@ -20,13 +18,11 @@ if ( ! defined( 'ABSPATH' ) ) exit;
 if( ! class_exists( 'GF_User_Populate' ) ) {
 	final class GF_User_Populate {
  		/** Singleton */
-
  		/**
  		 * @var GF_User_Populate The one true GF_User_Populate
  		 * @since 1.0.0
  		 */
  		private static $instance;
-
  		/**
  		 * Main GF_User_Populate Instance
  		 *
@@ -65,7 +61,6 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
  			// Cloning instances of the class is forbidden
  			_doing_it_wrong( __FUNCTION__, __( 'Cheatin&#8217; huh?', 'eec' ), '1.0.0' );
  		}
-
  		/**
  		 * Disable unserializing of the class
  		 *
@@ -127,22 +122,18 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
  		 * @return void
  		 */
  		private function setup_constants() {
-
  			// Plugin version
  			if ( ! defined( 'GFUP_VERSION' ) ) {
  				define( 'GFUP_VERSION', '1.0.0' );
  			}
-
  			// Plugin Folder Path
  			if ( ! defined( 'GFUP_DIR' ) ) {
  				define( 'GFUP_DIR', plugin_dir_path( __FILE__ ) );
  			}
-
  			// Plugin Folder URL
  			if ( ! defined( 'GFUP_URL' ) ) {
  				define( 'GFUP_URL', plugin_dir_url( __FILE__ ) );
  			}
-
  			// Plugin Root File
  			if ( ! defined( 'GFUP_FILE' ) ) {
  				define( 'GFUP_FILE', __FILE__ );
@@ -153,7 +144,6 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
  				define( 'GFUP_DOMAIN', 'gfup' );
  			}
  		}
-
  		/**
  		 * Include required files and starts the plugin
  		 *
@@ -206,10 +196,8 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
 				$safe_alt = '';
 			else
 				$safe_alt = esc_attr( $alt );
-
 			if ( !empty($email) )
 				$email_hash = md5( strtolower( trim( $email ) ) );
-
 			if ( is_ssl() ) {
 				$host = 'https://secure.gravatar.com';
 			} else {
@@ -218,7 +206,6 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
 				else
 					$host = 'http://0.gravatar.com';
 			}
-
 			if ( 'mystery' == $default )
 				$default = "$host/avatar/ad516503a11cd5ca435acc9bb6523536?s={$size}"; // ad516503a11cd5ca435acc9bb6523536 == md5('unknown@gravatar.com')
 			elseif ( 'blank' == $default )
@@ -231,7 +218,6 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
 				$default = "$host/avatar/?d=$default&amp;s={$size}";
 			elseif ( strpos($default, 'http://') === 0 )
 				$default = add_query_arg( 's', $size, $default );
-
 			// if we have a user, set the avatar based on WP_User_Avatar
 			if( $user && is_object( $user ) ) {
 				global $blog_id, $wpdb;
@@ -246,11 +232,9 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
 				$out .= $email_hash;
 				$out .= '?s='.$size;
 				$out .= '&amp;d=' . urlencode( $default );
-
 				$rating = get_option('avatar_rating');
 				if ( !empty( $rating ) )
 					$out .= "&amp;r={$rating}";
-
 				$out = str_replace( '&#038;', '&amp;', esc_url( $out ) );
 				$avatar = "<img alt='{$safe_alt}' src='{$out}' class='avatar avatar-{$size} photo' height='{$size}' width='{$size}' />";
 			} else {
@@ -310,7 +294,6 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
     
 		    return $form;
 		}
-
  		// Route to user address
  		function route_gf_notification( $notification, $form , $entry ) {
     
@@ -331,7 +314,6 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
  		    }
  		    return $notification;
  		}
-
  		// Add attachments to gravity form
  		function add_attachments_to_gf( $notification, $form, $entry ) {
  		    $fileupload_fields = GFCommon::get_fields_by_type( $form, array( "fileupload" ) );
@@ -351,7 +333,6 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
  		}
  	}
  } // End if class_exists check
-
  /**
   * The main function responsible for returning the one true DCG_Functionality
   * Instance to functions everywhere.
@@ -367,10 +348,8 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
  function GFUP() {
  	return GF_User_Populate::instance();
  }
-
  // Get DCG Running
  GFUP();
-
  /**
   * Log any errors for debugging.
   *
