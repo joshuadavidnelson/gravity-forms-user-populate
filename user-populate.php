@@ -1,5 +1,5 @@
 <?php
- /**
+/**
  * Plugin Name: Gravity Forms User Populate Add On
  * Plugin URI: http://joshuadnelson.com/user-dropdown-list-custom-notification-routing-gravity-forms/
  * Description: Populate the drop-down menu with users
@@ -24,6 +24,8 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
  		/**
  		 * @var GF_User_Populate The one true GF_User_Populate
  		 * @since 1.0.0
+ 		 * @static
+ 		 * @access private
  		 */
  		private static $instance;
 
@@ -39,7 +41,7 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
  		 * @uses GF_User_Populate::setup_constants() Setup the constants needed
  		 * @uses GF_User_Populate::includes() Include the required files
  		 * @uses GF_User_Populate::load_textdomain() load the language files
- 		 * @see DCG()
+ 		 * @see GFUP()
  		 * @return The one true GF_User_Populate
  		 */
  		public static function instance() {
@@ -58,7 +60,7 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
  		 * object therefore, we don't want the object to be cloned.
  		 *
  		 * @since 1.0.0
- 		 * @access protected
+ 		 * @access public
  		 * @return void
  		 */
  		public function __clone() {
@@ -70,7 +72,7 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
  		 * Disable unserializing of the class
  		 *
  		 * @since 1.0.0
- 		 * @access protected
+ 		 * @access public
  		 * @return void
  		 */
  		public function __wakeup() {
@@ -78,7 +80,13 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
  			_doing_it_wrong( __FUNCTION__, __( 'Cheatin&#8217; huh?', 'eec' ), '1.0.0' );
  		}
 		
-		
+ 		/**
+ 		 * Verify that the plugin's dependencies are active
+ 		 *
+ 		 * @since 1.0.0
+ 		 * @access public
+ 		 * @return void
+ 		 */
 		public function plugins_loaded() {
 			if ( ! self::is_gfup_supported() ) {
 				$message = __( 'GF User Populate Requires Gravity Forms and WP User Avatar', 'gfup' );
@@ -87,10 +95,24 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
 			}
 		}
 		
+ 		/**
+ 		 * Deactivate plugin
+ 		 *
+ 		 * @since 1.0.0
+ 		 * @return void
+ 		 */
 		function plugin_deactivate() {
 			deactivate_plugins( plugin_basename( __FILE__ ) );
 		}
 		
+ 		/**
+ 		 * Verify the plugin is supported
+ 		 *
+ 		 * @since 1.0.0
+ 		 * @static
+ 		 * @access public
+ 		 * @return boolean 
+ 		 */
 		private static function is_gfup_supported() {
 			if( class_exists( 'WP_User_Avatar' ) && class_exists( 'GFCommon' ) ) {
 				return true;
@@ -102,12 +124,7 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
 		 *  Output admin notices
 		 *
 		 * @since 1.0.0
-		 *
-		 * @uses  get_site_transient()
-		 * @uses  get_transient()
-		 * @uses  delete_site_transient()
-		 * @uses  delete_transient()
-		 *
+ 		 * @access public
 		 * @return void
 		 */
 		public function deactivate_admin_notice( $message = '', $class = 'error' ) {
@@ -122,8 +139,8 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
  		/**
  		 * Setup plugin constants
  		 *
- 		 * @access private
  		 * @since 1.0.0
+ 		 * @access private
  		 * @return void
  		 */
  		private function setup_constants() {
@@ -157,8 +174,8 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
  		/**
  		 * Include required files and starts the plugin
  		 *
- 		 * @access private
  		 * @since 1.0.0
+ 		 * @access private
  		 * @return void
  		 */
  		private function includes() {
@@ -166,7 +183,12 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
  			add_action( 'plugins_loaded', array( $this, 'init' ) );
  		}
 		
- 		// Initialize the plugin hooks
+ 		/**
+ 		 * Initialize the plugin hooks
+ 		 *
+ 		 * @since 1.0.0
+ 		 * @return void
+ 		 */
  		function init() {
  			// Gravity form custom dropdown and routing
  			add_filter( 'gform_pre_render_1', array( $this, 'populate_user_email_list' ) );
@@ -177,6 +199,16 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
 			add_filter( 'get_avatar', array( $this, 'get_avatar' ), 10, 5 );
  		}
 		
+ 		/**
+ 		 * Filter the avatar.
+		 *
+		 * Does the same checks as get_avatar (see wp-includes/pluggable.php), but replaces
+		 * said avatar with the user meta field, if present
+ 		 *
+ 		 * @since 1.0.0
+ 		 * @access public
+ 		 * @return void
+ 		 */
 		public function get_avatar( $avatar, $id_or_email, $size, $default, $alt ) {
 				
 			$user = false;
@@ -261,7 +293,14 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
 			return $avatar;
 		}
 		
- 		// Gravity Forms User Populate
+ 		/**
+ 		 * Gravity Forms User Populate
+		 *
+		 * Populates the field with a list of users
+ 		 *
+ 		 * @since 1.0.0
+ 		 * @return $form
+ 		 */
 		function populate_user_email_list( $form ) {
         
 		    // Add filter to fields, populate the list
@@ -311,7 +350,12 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
 		    return $form;
 		}
 
- 		// Route to user address
+ 		/**
+ 		 * Route the notification to the selected user
+ 		 *
+ 		 * @since 1.0.0
+ 		 * @return $notification
+ 		 */
  		function route_gf_notification( $notification, $form , $entry ) {
     
  		    foreach( $form['fields'] as &$field ) {
@@ -332,7 +376,12 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
  		    return $notification;
  		}
 
- 		// Add attachments to gravity form
+ 		/**
+ 		 * Add any uploaded files as attachments to the notification email
+ 		 *
+ 		 * @since 1.0.0
+ 		 * @return $notification
+ 		 */
  		function add_attachments_to_gf( $notification, $form, $entry ) {
  		    $fileupload_fields = GFCommon::get_fields_by_type( $form, array( "fileupload" ) );
  		    if( !is_array( $fileupload_fields ) )
@@ -347,41 +396,43 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
  		        }
  		    }
  		    $notification["attachments"] = $attachments;
- 		    return $notification;
- 		}
- 	}
- } // End if class_exists check
+		    return $notification;
+		}
+	} // End of class
+} // End if class_exists check
 
- /**
-  * The main function responsible for returning the one true DCG_Functionality
-  * Instance to functions everywhere.
-  *
-  * Use this function like you would a global variable, except without needing
-  * to declare the global.
-  *
-  * Example: <?php $gfup = GFUP(); ?>
-  *
-  * @since 1.0.0
-  * @return object The one true DCG_Functionality Instance
-  */
- function GFUP() {
- 	return GF_User_Populate::instance();
- }
+/**
+ * The main function responsible for returning the one true GF_User_Populate
+ * Instance to functions everywhere.
+ *
+ * Use this function like you would a global variable, except without needing
+ * to declare the global.
+ *
+ * Example: <?php $gfup = GFUP(); ?>
+ *
+ * @since 1.0.0
+ * @return object The one true GF_User_Populate Instance
+ */
+function GFUP() {
+	return GF_User_Populate::instance();
+}
 
- // Get DCG Running
- GFUP();
+// Get DCG Running
+GFUP();
 
- /**
-  * Log any errors for debugging.
-  *
-  * @since 1.0.0
-  */	
- function jdn_log_me( $message ) {
-     if ( WP_DEBUG === true ) {
-         if ( is_array( $message ) || is_object( $message ) ) {
-             error_log( 'GFUP Error: ' . print_r( $message, true ) );
-         } else {
-             error_log( 'GFUP Error: ' . $message );
-         }
-     }
- }
+/**
+ * Log any errors for debugging.
+ *
+ * @since 1.0.0
+ */
+if( !function_exists( 'gfup_log_me' ) ) {
+	function gfup_log_me( $message ) {
+		if ( WP_DEBUG === true ) {
+			if ( is_array( $message ) || is_object( $message ) ) {
+				error_log( 'GFUP Error: ' . print_r( $message, true ) );
+			} else {
+				error_log( 'GFUP Error: ' . $message );
+			}
+		}
+	}
+}
