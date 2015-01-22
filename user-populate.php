@@ -20,123 +20,35 @@ if ( ! defined( 'ABSPATH' ) ) exit;
  * @since 1.0.0
  */
 if( ! class_exists( 'GF_User_Populate' ) ) {
-	final class GF_User_Populate {
- 		/** Singleton */
+	class GF_User_Populate {
+		
+		// Main instance variable
+		var $instance;
+		
+		// The ACF Gallery field id
+		private $acf_field_id = 'field_546d0ad42e7f0';
+		
+		// The Gravity Forms gallery field id
+		private $images_gf_field_id = 27;
+		
+		// The Gravity Forms author id
+		private $author_gf_field_id = 23;
+		
+		// The Gravity Forms conditional author field id ("yes" if existing author)
+		private $author_conditional_gf_field_id = 19;
 
  		/**
- 		 * @var GF_User_Populate The one true GF_User_Populate
- 		 * @since 1.0.0
- 		 * @static
- 		 * @access private
- 		 */
- 		private static $instance;
-
- 		/**
- 		 * Main GF_User_Populate Instance
- 		 *
- 		 * Insures that only one instance of GF_User_Populate exists in memory at any one
- 		 * time. Also prevents needing to define globals all over the place.
+ 		 * Start the engine
  		 *
  		 * @since 1.0.0
- 		 * @static
- 		 * @staticvar array $instance
- 		 * @uses GF_User_Populate::setup_constants() Setup the constants needed
- 		 * @uses GF_User_Populate::includes() Include the required files
- 		 * @uses GF_User_Populate::load_textdomain() load the language files
- 		 * @see GFUP()
- 		 * @return The one true GF_User_Populate
+ 		 * @return void
  		 */
- 		public static function instance() {
- 			if ( ! isset( self::$instance ) && ! ( self::$instance instanceof GF_User_Populate ) ) {
- 				self::$instance = new GF_User_Populate;
- 				self::$instance->setup_constants();
- 				self::$instance->includes();
- 			}
- 			return self::$instance;
+ 		function __construct() {
+			$this->instance =& $this;
+		
+			$this->setup_constants();
+			$this->includes();
  		}
- 		
- 		/**
- 		 * Throw error on object clone
- 		 *
- 		 * The whole idea of the singleton design pattern is that there is a single
- 		 * object therefore, we don't want the object to be cloned.
- 		 *
- 		 * @since 1.0.0
- 		 * @access public
- 		 * @return void
- 		 */
- 		public function __clone() {
- 			// Cloning instances of the class is forbidden
- 			_doing_it_wrong( __FUNCTION__, __( 'Cheatin&#8217; huh?', 'eec' ), '1.0.0' );
- 		}
-
- 		/**
- 		 * Disable unserializing of the class
- 		 *
- 		 * @since 1.0.0
- 		 * @access public
- 		 * @return void
- 		 */
- 		public function __wakeup() {
- 			// Unserializing instances of the class is forbidden
- 			_doing_it_wrong( __FUNCTION__, __( 'Cheatin&#8217; huh?', 'eec' ), '1.0.0' );
- 		}
-		
- 		/**
- 		 * Verify that the plugin's dependencies are active
- 		 *
- 		 * @since 1.0.0
- 		 * @access public
- 		 * @return void
- 		 */
-		public function plugins_loaded() {
-			if ( ! self::is_gfup_supported() ) {
-				$message = __( 'GF User Populate Requires Gravity Forms and WP User Avatar', 'gfup' );
-				add_action( 'admin_notices', array( $this, 'deactivate_admin_notice' ) );
-				add_action( 'admin_init', array( $this, 'plugin_deactivate' ) );
-			}
-		}
-		
- 		/**
- 		 * Deactivate plugin
- 		 *
- 		 * @since 1.0.0
- 		 * @return void
- 		 */
-		function plugin_deactivate() {
-			deactivate_plugins( plugin_basename( __FILE__ ) );
-		}
-		
- 		/**
- 		 * Verify the plugin is supported
- 		 *
- 		 * @since 1.0.0
- 		 * @static
- 		 * @access public
- 		 * @return boolean 
- 		 */
-		private static function is_gfup_supported() {
-			if( class_exists( 'WP_User_Avatar' ) && class_exists( 'GFCommon' ) ) {
-				return true;
-			}
-			return false;
-		}
-		
-		/**
-		 *  Output admin notices
-		 *
-		 * @since 1.0.0
- 		 * @access public
-		 * @return void
-		 */
-		public function deactivate_admin_notice( $message = '', $class = 'error' ) {
-			if( empty( $message ) ) {
-				$message = __( 'GF User Populate has been deactived. It requires Gravity Forms and WP User Avatar plugins', 'gfup' );
-			}
-			echo '<div class="' . $class . '"><p>' . $message . '</p></div>';
-			if ( isset( $_GET['activate'] ) )
-				unset( $_GET['activate'] );
-		}
 		
  		/**
  		 * Setup plugin constants
@@ -161,16 +73,7 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
  			if ( ! defined( 'GFUP_URL' ) ) {
  				define( 'GFUP_URL', plugin_dir_url( __FILE__ ) );
  			}
-
- 			// Plugin Root File
- 			if ( ! defined( 'GFUP_FILE' ) ) {
- 				define( 'GFUP_FILE', __FILE__ );
- 			}
 			
- 			// Plugin Text Domain
- 			if ( ! defined( 'GFUP_DOMAIN' ) ) {
- 				define( 'GFUP_DOMAIN', 'gfup' );
- 			}
  		}
 
  		/**
@@ -186,6 +89,63 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
  		}
 		
  		/**
+ 		 * Verify that the plugin's dependencies are active
+ 		 *
+ 		 * @since 1.0.0
+ 		 * @access public
+ 		 * @return void
+ 		 */
+		public function plugins_loaded() {
+			if( ! $this->is_gfup_supported() ) {
+				$message = __( 'GF User Populate Requires Gravity Forms and WP User Avatar', 'gfup' );
+				add_action( 'admin_notices', array( $this, 'deactivate_admin_notice' ) );
+				add_action( 'admin_init', array( $this, 'plugin_deactivate' ) );
+				return;
+			}
+		}
+		
+ 		/**
+ 		 * Verify the plugin is supported
+ 		 *
+ 		 * @since 1.0.0
+ 		 * @static
+ 		 * @access public
+ 		 * @return boolean 
+ 		 */
+		private static function is_gfup_supported() {
+			if( class_exists( 'WP_User_Avatar' ) && class_exists( 'GFCommon' ) ) {
+				return true;
+			}
+			return false;
+		}
+		
+ 		/**
+ 		 * Deactivate plugin
+ 		 *
+ 		 * @since 1.0.0
+ 		 * @return void
+ 		 */
+		function plugin_deactivate() {
+			deactivate_plugins( plugin_basename( __FILE__ ) );
+		}
+		
+		/**
+		 *  Output admin notices
+		 *
+		 * @since 1.0.0
+ 		 * @access public
+		 * @return void
+		 */
+		public function deactivate_admin_notice( $message = '', $class = 'error' ) {
+			if( empty( $message ) ) {
+				$message = __( 'GF User Populate has been deactived. It requires Gravity Forms and WP User Avatar plugins', 'gfup' );
+			}
+			echo '<div class="' . $class . '"><p>' . $message . '</p></div>';
+			if ( isset( $_GET['activate'] ) )
+				unset( $_GET['activate'] );
+		}
+		
+ 		/**
  		 * Initialize the plugin hooks
  		 *
  		 * @since 1.0.0
@@ -194,11 +154,12 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
  		function init() {
  			// Gravity form custom dropdown and routing
  			add_filter( 'gform_pre_render_1', array( $this, 'populate_user_email_list' ) );
- 			//add_filter( 'gform_notification_1', array( $this, 'route_gf_notification' ), 10, 3 ); 
- 			//add_filter( 'gform_notification_1', array( $this, 'add_attachments_to_gf' ), 10, 3 );
 			
 			// Add Avatar form field
 			add_filter( 'get_avatar', array( $this, 'get_avatar' ), 10, 5 );
+			
+			// Set post author and/or gallery images
+			add_filter( 'gform_after_submission_1', array( $this, 'set_post_fields' ), 10, 2 );
  		}
 		
  		/**
@@ -296,131 +257,143 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
 		}
 		
  		/**
- 		 * Gravity Forms User Populate
+ 		 * Gravity Forms User Populate.
 		 *
-		 * Populates the field with a list of users
+		 * Populates the field with a list of users.
  		 *
  		 * @since 1.0.0
  		 * @return $form
  		 */
 		function populate_user_email_list( $form ) {
-        
-		    // Add filter to fields, populate the list
-		    foreach( $form['fields'] as &$field ) {
-        
-			// If the field is not a dropdown and not the specific class, move onto the next one
-			// This acts as a quick means to filter arguments until we find the one we want
-		        if( $field['type'] !== 'select' || strpos($field['cssClass'], 'user-emails') === false )
-		            continue;
-        
-			// The first, "select" option
-		        $choices = array( array( 'text' => 'Select a User', 'value' => ' ' ) );
-		
-			// Collect user information
-			// prepare arguments
-			$args  = array(
-				// order results by user_nicename
-				'orderby' => 'user_nicename',
-				// Return the fields we desire
-				'fields'  => array( 'id', 'display_name', 'user_email' ),
-			);
-			// Create the WP_User_Query object
-			$wp_user_query = new WP_User_Query( $args );
-			// Get the results
-			$users = $wp_user_query->get_results();
-			//print_r( $users );
-	
-			// Check for results
-		        if ( !empty( $users ) ) {
-				foreach ( $users as $user ){
-					// Make sure the user has an email address, safeguard against users can be imported without email addresses
-					// Also, make sure the user is at least able to edit posts (i.e., not a subscriber). Look at: http://codex.wordpress.org/Roles_and_Capabilities for more ideas
-					if( !empty( $user->user_email ) && user_can( $user->id, 'edit_posts') ) {
-						// add users to select options
-						$choices[] = array(
-							'text'  => $user->display_name,
-							'value' => $user->id,
-						);
+
+			// Add filter to fields, populate the list
+			foreach( $form['fields'] as &$field ) {
+
+				// If the field is not a dropdown and not the specific class, move onto the next one
+				// This acts as a quick means to filter arguments until we find the one we want
+				if( $field['type'] !== 'select' || strpos($field['cssClass'], 'user-emails') === false )
+					continue;
+
+				// The first, "select" option
+				$choices = array( array( 'text' => 'Select a User', 'value' => ' ' ) );
+
+				// Collect user information
+				// prepare arguments
+				$args  = array(
+					// order results by user_nicename
+					'orderby' => 'user_nicename',
+					// Return the fields we desire
+					'fields'  => array( 'id', 'display_name', 'user_email' ),
+				);
+				// Create the WP_User_Query object
+				$wp_user_query = new WP_User_Query( $args );
+				// Get the results
+				$users = $wp_user_query->get_results();
+				//print_r( $users );
+
+				// Check for results
+				if ( !empty( $users ) ) {
+					foreach ( $users as $user ){
+						// Make sure the user has an email address, safeguard against users can be imported without email addresses
+						// Also, make sure the user is at least able to edit posts (i.e., not a subscriber). Look at: http://codex.wordpress.org/Roles_and_Capabilities for more ideas
+						if( !empty( $user->user_email ) && user_can( $user->id, 'edit_posts') ) {
+							// add users to select options
+							$choices[] = array(
+								'text'  => $user->display_name,
+								'value' => $user->id,
+							);
+						}
 					}
 				}
+				$field['choices'] = $choices;
 			}
-        
-		        $field['choices'] = $choices;
-        
-		    }
-    
-		    return $form;
+
+			return $form;
 		}
 
  		/**
- 		 * Route the notification to the selected user
+ 		 * Attach images to post gallery meta & author.
  		 *
  		 * @since 1.0.0
- 		 * @return $notification
+ 		 * @return void
  		 */
- 		function route_gf_notification( $notification, $form , $entry ) {
-    
- 		    foreach( $form['fields'] as &$field ) {
-        
- 		        if( $field['type'] != 'select' || strpos( $field['cssClass'], 'gfup-employees' ) === false )
- 		            continue;
-        
- 		        $field_id = (string) $field['id'];
- 		        $user_id = $entry[ $field_id ];
-        
- 		    }
-    
- 		    $email_to = get_the_author_meta( 'user_email', $user_id);
-    
- 		    if( $email_to ) {
- 		        $notification['to'] = $email_to;
- 		    }
- 		    return $notification;
- 		}
+		function set_post_fields( $entry, $form ) {
+			
+			// get post
+			if( isset( $entry['post_id'] ) ) {
+			    $post = get_post( $entry['post_id'] );
+			} else {
+				return;
+			}
+			
+			// Set Post Author, if existing author is chosen
+			if( isset( $entry[ $this->author_conditional_gf_field_id ] ) && $entry[$this->author_conditional_gf_field_id] == "Yes" && isset( $entry[ $this->author_gf_field_id ] ) && !empty( $entry[ $this->author_gf_field_id ] ) ) {
+				// set post author to author field
+				// verify that the id is a valid author?
+				if( get_user_by( 'id', $entry[ $this->author_gf_field_id ] ) )
+					$post->post_author = $entry[ $this->author_gf_field_id ];
+			}
+			
+			// Clean up images upload and create array for gallery field
+			$images = stripslashes( $entry[$this->images_gf_field_id] );
+			$images = json_decode( $images, true );
+			$gallery = array();
+			foreach( $images as $key => $value ) {
+				$gallery[] = $this->get_image_id( $value );
+			}
+			
+			// Update gallery field with array
+			if( ! empty( $gallery ) ) {
+				update_field( $this->acf_field_id, $gallery, $post->ID );
+			} else {
+				gfup_log_me( 'Something went wrong with the gallery upload' );
+			}
+			
+		    // Updating post
+		    wp_update_post( $post );
+		}
+		
+		/**
+		 * Create the image and return the new media upload id.
+		 *
+		 * @since 1.0.0
+		 * @see http://codex.wordpress.org/Function_Reference/wp_insert_attachment#Example
+		 */
+		function get_image_id( $image_url, $parent_post_id = 0 ) {
 
- 		/**
- 		 * Add any uploaded files as attachments to the notification email
- 		 *
- 		 * @since 1.0.0
- 		 * @return $notification
- 		 */
- 		function add_attachments_to_gf( $notification, $form, $entry ) {
- 		    $fileupload_fields = GFCommon::get_fields_by_type( $form, array( "fileupload" ) );
- 		    if( !is_array( $fileupload_fields ) )
- 		        return $notification;
- 		    $attachments = array();
- 		    $upload_root = RGFormsModel::get_upload_root();
- 		    foreach( $fileupload_fields as $field ){
- 		        $url = $entry[ $field["id"] ];
- 		        $attachment = preg_replace('|^(.*?)/gravity_forms/|', $upload_root, $url);
- 		        if( $attachment ){
- 		            $attachments[] = $attachment;
- 		        }
- 		    }
- 		    $notification["attachments"] = $attachments;
-		    return $notification;
+			// Check the type of file. We'll use this as the 'post_mime_type'.
+			$filetype = wp_check_filetype( basename( $filename ), null );
+
+			// Get the path to the upload directory.
+			$wp_upload_dir = wp_upload_dir();
+
+			// Prepare an array of post data for the attachment.
+			$attachment = array(
+				'guid'           => $wp_upload_dir['url'] . '/' . basename( $image_url ), 
+				'post_mime_type' => $filetype['type'],
+				'post_title'     => preg_replace( '/\.[^.]+$/', '', basename( $image_url ) ),
+				'post_content'   => '',
+				'post_status'    => 'inherit'
+			);
+
+			// Insert the attachment.
+			$attach_id = wp_insert_attachment( $attachment, $image_url, $parent_post_id );
+
+			// Make sure that this file is included, as wp_generate_attachment_metadata() depends on it.
+			require_once( ABSPATH . 'wp-admin/includes/image.php' );
+
+			// Generate the metadata for the attachment, and update the database record.
+			$attach_data = wp_generate_attachment_metadata( $attach_id, $image_url );
+			wp_update_attachment_metadata( $attach_id, $attach_data );
+
+			return $attach_id; 
 		}
 	} // End of class
+	
+	// Generate class
+	global $_gf_user_populate;
+	$_gf_user_populate = new GF_User_Populate;
 } // End if class_exists check
-
-/**
- * The main function responsible for returning the one true GF_User_Populate
- * Instance to functions everywhere.
- *
- * Use this function like you would a global variable, except without needing
- * to declare the global.
- *
- * Example: <?php $gfup = GFUP(); ?>
- *
- * @since 1.0.0
- * @return object The one true GF_User_Populate Instance
- */
-function GFUP() {
-	return GF_User_Populate::instance();
-}
-
-// Get DCG Running
-GFUP();
 
 /**
  * Log any errors for debugging.
