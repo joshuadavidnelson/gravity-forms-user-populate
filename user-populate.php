@@ -1,11 +1,13 @@
 <?php
 /**
  * Plugin Name: Gravity Forms User Populate Add On
- * Plugin URI: http://joshuadnelson.com/user-dropdown-list-custom-notification-routing-gravity-forms/
+ * Plugin URI: https://github.com/joshuadavidnelson/gravity-forms-user-populate
  * Description: Populate the drop-down menu with users
  * Version: 1.0.0
  * Author: Joshua David Nelson
  * Author URI: josh@joshuadnelson.com
+ * GitHub Plugin URI: https://github.com/joshuadavidnelson/gravity-forms-user-populate
+ * GitHub Branch: master
  * License: GPL2
  */
 
