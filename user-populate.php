@@ -3,7 +3,7 @@
  * Plugin Name: Gravity Forms User Populate Add On
  * Plugin URI: https://github.com/joshuadavidnelson/gravity-forms-user-populate
  * Description: Populate the drop-down menu with users
- * Version: 1.0.0
+ * Version: 1.1.0
  * Author: Joshua David Nelson
  * Author URI: josh@joshuadnelson.com
  * GitHub Plugin URI: https://github.com/joshuadavidnelson/gravity-forms-user-populate
@@ -61,7 +61,7 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
 
  			// Plugin version
  			if ( ! defined( 'GFUP_VERSION' ) ) {
- 				define( 'GFUP_VERSION', '1.0.0' );
+ 				define( 'GFUP_VERSION', '1.1.0' );
  			}
 
  			// Plugin Folder Path
@@ -97,7 +97,7 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
  		 */
 		public function plugins_loaded() {
 			if( ! $this->is_gfup_supported() ) {
-				$message = __( 'GF User Populate Requires Gravity Forms and WP User Avatar', 'gfup' );
+				$message = __( 'GF User Populate Requires Gravity Forms, GF User Registration and WP User Avatar to be active', 'gfup' );
 				add_action( 'admin_notices', array( $this, 'deactivate_admin_notice' ) );
 				add_action( 'admin_init', array( $this, 'plugin_deactivate' ) );
 				return;
@@ -113,7 +113,7 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
  		 * @return boolean 
  		 */
 		private static function is_gfup_supported() {
-			if( class_exists( 'WP_User_Avatar' ) && class_exists( 'GFCommon' ) ) {
+			if( class_exists( 'WP_User_Avatar' ) && class_exists( 'GFCommon' ) && class_exists( 'GFUser' ) ) {
 				return true;
 			}
 			return false;
@@ -323,30 +323,39 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
 			if( isset( $entry['post_id'] ) ) {
 			    $post = get_post( $entry['post_id'] );
 			} else {
+				gfup_log_me( 'GF post id not set' );
+				return;
+			}
+			
+			// Bail if the post don't work
+			if( is_null( $post ) ) {
+				gfup_log_me( 'Invalid post' );
 				return;
 			}
 			
 			// Set Post Author, if existing author is chosen
 			if( isset( $entry[ $this->author_conditional_gf_field_id ] ) && $entry[$this->author_conditional_gf_field_id] == "Yes" && isset( $entry[ $this->author_gf_field_id ] ) && !empty( $entry[ $this->author_gf_field_id ] ) ) {
 				// set post author to author field
-				// verify that the id is a valid author?
+				// verify that the id is a valid author
 				if( get_user_by( 'id', $entry[ $this->author_gf_field_id ] ) )
 					$post->post_author = $entry[ $this->author_gf_field_id ];
 			}
 			
 			// Clean up images upload and create array for gallery field
-			$images = stripslashes( $entry[$this->images_gf_field_id] );
-			$images = json_decode( $images, true );
-			$gallery = array();
-			foreach( $images as $key => $value ) {
-				$gallery[] = $this->get_image_id( $value );
+			if( isset( $entry[$this->images_gf_field_id] ) ) {
+				$images = stripslashes( $entry[$this->images_gf_field_id] );
+				$images = json_decode( $images, true );
+				if( !empty( $images ) && is_array( $images ) ) {
+					$gallery = array();
+					foreach( $images as $key => $value ) {
+						$gallery[] = $this->get_image_id( $value, $post->ID );
+					}
+				}
 			}
 			
 			// Update gallery field with array
 			if( ! empty( $gallery ) ) {
 				update_field( $this->acf_field_id, $gallery, $post->ID );
-			} else {
-				gfup_log_me( 'Something went wrong with the gallery upload' );
 			}
 			
 		    // Updating post
@@ -362,8 +371,11 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
 		function get_image_id( $image_url, $parent_post_id = 0 ) {
 
 			// Check the type of file. We'll use this as the 'post_mime_type'.
-			$filetype = wp_check_filetype( basename( $filename ), null );
-
+			$filetype = wp_check_filetype( basename( $image_url ), null );
+			
+			// get the file path
+			$path = parse_url( $image_url, PHP_URL_PATH );
+			
 			// Get the path to the upload directory.
 			$wp_upload_dir = wp_upload_dir();
 
@@ -377,15 +389,15 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
 			);
 
 			// Insert the attachment.
-			$attach_id = wp_insert_attachment( $attachment, $image_url, $parent_post_id );
+			$attach_id = wp_insert_attachment( $attachment, $image_url );
 
 			// Make sure that this file is included, as wp_generate_attachment_metadata() depends on it.
 			require_once( ABSPATH . 'wp-admin/includes/image.php' );
-
+			
 			// Generate the metadata for the attachment, and update the database record.
-			$attach_data = wp_generate_attachment_metadata( $attach_id, $image_url );
+			$attach_data = wp_generate_attachment_metadata( $attach_id, $path );
 			wp_update_attachment_metadata( $attach_id, $attach_data );
-
+			
 			return $attach_id; 
 		}
 	} // End of class
