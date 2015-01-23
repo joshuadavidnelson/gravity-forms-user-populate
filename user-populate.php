@@ -323,7 +323,7 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
 			if( isset( $entry['post_id'] ) ) {
 			    $post = get_post( $entry['post_id'] );
 			} else {
-				gfup_log_me( 'Post id not set' );
+				gfup_log_me( 'GF post id not set' );
 				return;
 			}
 			
@@ -345,19 +345,17 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
 			if( isset( $entry[$this->images_gf_field_id] ) ) {
 				$images = stripslashes( $entry[$this->images_gf_field_id] );
 				$images = json_decode( $images, true );
-				$gallery = array();
-				foreach( $images as $key => $value ) {
-					$gallery[] = $this->get_image_id( $value );
+				if( !empty( $images ) && is_array( $images ) ) {
+					$gallery = array();
+					foreach( $images as $key => $value ) {
+						$gallery[] = $this->get_image_id( $value, $post->ID );
+					}
 				}
-			} else {
-				gfup_log_me( 'The gallery field is empty' );
 			}
 			
 			// Update gallery field with array
 			if( ! empty( $gallery ) ) {
 				update_field( $this->acf_field_id, $gallery, $post->ID );
-			} else {
-				gfup_log_me( 'Something went wrong with the gallery upload' );
 			}
 			
 		    // Updating post
