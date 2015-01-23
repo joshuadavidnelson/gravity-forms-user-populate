@@ -373,8 +373,11 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
 		function get_image_id( $image_url, $parent_post_id = 0 ) {
 
 			// Check the type of file. We'll use this as the 'post_mime_type'.
-			$filetype = wp_check_filetype( basename( $filename ), null );
-
+			$filetype = wp_check_filetype( basename( $image_url ), null );
+			
+			// get the file path
+			$path = parse_url( $image_url, PHP_URL_PATH );
+			
 			// Get the path to the upload directory.
 			$wp_upload_dir = wp_upload_dir();
 
@@ -388,15 +391,15 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
 			);
 
 			// Insert the attachment.
-			$attach_id = wp_insert_attachment( $attachment, $image_url, $parent_post_id );
+			$attach_id = wp_insert_attachment( $attachment, $image_url );
 
 			// Make sure that this file is included, as wp_generate_attachment_metadata() depends on it.
 			require_once( ABSPATH . 'wp-admin/includes/image.php' );
-
+			
 			// Generate the metadata for the attachment, and update the database record.
-			$attach_data = wp_generate_attachment_metadata( $attach_id, $image_url );
+			$attach_data = wp_generate_attachment_metadata( $attach_id, $path );
 			wp_update_attachment_metadata( $attach_id, $attach_data );
-
+			
 			return $attach_id; 
 		}
 	} // End of class
