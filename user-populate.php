@@ -97,7 +97,7 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
  		 */
 		public function plugins_loaded() {
 			if( ! $this->is_gfup_supported() ) {
-				$message = __( 'GF User Populate Requires Gravity Forms and WP User Avatar', 'gfup' );
+				$message = __( 'GF User Populate Requires Gravity Forms, GF User Registration and WP User Avatar to be active', 'gfup' );
 				add_action( 'admin_notices', array( $this, 'deactivate_admin_notice' ) );
 				add_action( 'admin_init', array( $this, 'plugin_deactivate' ) );
 				return;
@@ -113,7 +113,7 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
  		 * @return boolean 
  		 */
 		private static function is_gfup_supported() {
-			if( class_exists( 'WP_User_Avatar' ) && class_exists( 'GFCommon' ) ) {
+			if( class_exists( 'WP_User_Avatar' ) && class_exists( 'GFCommon' ) && class_exists( 'GFUser' ) ) {
 				return true;
 			}
 			return false;
