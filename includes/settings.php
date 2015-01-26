@@ -83,7 +83,6 @@ class GFUP_Settings {
      **/
     public function add_page() {
 		$this->options_page = add_options_page( $this->title, $this->title, 'manage_options', self::$key, array( $this, 'admin_page_display' ) );
-        add_action( 'admin_head-' . $this->options_page, array( $this, 'admin_head' ) );
     }
 
     /**

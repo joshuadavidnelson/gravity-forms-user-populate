@@ -4,7 +4,7 @@ Donate link: http://jdn.im/donate
 Tags: gravity forms, users
 Requires at least: 3.6
 Tested up to: 4.1
-Stable tag: 1.1.0
+Stable tag: 1.2.1
 
 Adds the ability to auto populate a form field with usernames
 
@@ -21,6 +21,12 @@ Adds the ability to auto populate a form field with usernames
 
 
 == Changelog ==
+
+= 1.2.1 (2015-01-25) =
+* Fix bug
+
+= 1.2.0 (2015-01-25) =
+* Settings page
 
 = 1.0.0 (2015-01-20) =
 * Initial release.
