@@ -3,7 +3,7 @@
  * Plugin Name: Gravity Forms User Populate Add On
  * Plugin URI: https://github.com/joshuadavidnelson/gravity-forms-user-populate
  * Description: Populate the drop-down menu with users
- * Version: 1.1.0
+ * Version: 1.2.0
  * Author: Joshua David Nelson
  * Author URI: josh@joshuadnelson.com
  * GitHub Plugin URI: https://github.com/joshuadavidnelson/gravity-forms-user-populate
@@ -25,17 +25,14 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
 		// Main instance variable
 		var $instance;
 		
-		// The ACF Gallery field id
-		private $acf_field_id = 'field_546d0ad42e7f0';
-		
-		// The Gravity Forms gallery field id
-		private $images_gf_field_id = 27;
-		
-		// The Gravity Forms author id
-		private $author_gf_field_id = 23;
-		
-		// The Gravity Forms conditional author field id ("yes" if existing author)
-		private $author_conditional_gf_field_id = 19;
+		// The default options
+		private $options = array(
+			'gf_form_id' => 1, // the gravity form
+			'acf_field_id' => 'field_546d0ad42e7f0', // The ACF Gallery field id
+			'gf_images_field_id' => 27, // The Gravity Forms gallery field id
+			'gf_author_field_id' => 23, // The Gravity Forms author id
+			'gf_author_conditional_field_id' => 19, // The Gravity Forms conditional author field id ("yes" if existing author)
+		);
 
  		/**
  		 * Start the engine
@@ -61,7 +58,7 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
 
  			// Plugin version
  			if ( ! defined( 'GFUP_VERSION' ) ) {
- 				define( 'GFUP_VERSION', '1.1.0' );
+ 				define( 'GFUP_VERSION', '1.2.0' );
  			}
 
  			// Plugin Folder Path
@@ -72,6 +69,11 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
  			// Plugin Folder URL
  			if ( ! defined( 'GFUP_URL' ) ) {
  				define( 'GFUP_URL', plugin_dir_url( __FILE__ ) );
+ 			}
+
+ 			// Plugin Text Domain - for internationalization
+ 			if ( ! defined( 'GFUP_DOMAIN' ) ) {
+ 				define( 'GFUP_DOMAIN', 'gfup' );
  			}
 			
  		}
@@ -86,7 +88,37 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
  		private function includes() {
  			add_action( 'plugins_loaded', array( $this, 'plugins_loaded' ) );
  			add_action( 'plugins_loaded', array( $this, 'init' ) );
- 		}
+			
+			// include metabox and settings page
+			if ( file_exists(  GFUP_DIR . '/includes/metabox/init.php' ) ) {
+				require_once( GFUP_DIR . '/includes/metabox/init.php' );
+				require_once( GFUP_DIR . '/includes/settings.php');
+			}
+			
+			// get settings
+			if( function_exists( 'gfup_get_option' ) ) {
+				$gfup_options = array();
+				$gfup_options['gf_form_id'] = gfup_get_option( 'gf_form_id' );
+				$gfup_options['acf_field_id'] = gfup_get_option( 'acf_field_id' );
+				$gfup_options['gf_images_field_id'] = gfup_get_option( 'gf_images_field_id' );
+				$gfup_options['gf_author_field_id'] = gfup_get_option( 'gf_author_field_id' );
+				$gfup_options['gf_author_conditional_field_id'] = gfup_get_option( 'gf_author_conditional_field_id' );
+				
+				// run through settings and update values as necessary
+				foreach( $this->options as $option => $value ) {
+					foreach( $gfup_options as $new_option => $new_value ) {
+						if( $option == $new_option ) {
+							if( !empty( $new_value ) ) {
+								if( $new_option == 'acf_field_id' || is_numeric( $new_value ) ) {
+									$this->options[$option] = $new_value;
+								} // end if
+							} // end if
+						} // end if
+					} // end foreach
+				} // end foreach
+			} // end if
+			
+ 		} // end function
 		
  		/**
  		 * Verify that the plugin's dependencies are active
@@ -153,7 +185,7 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
  		 */
  		function init() {
  			// Gravity form custom dropdown and routing
- 			add_filter( 'gform_pre_render_1', array( $this, 'populate_user_email_list' ) );
+ 			add_filter( "gform_pre_render_{$this->options['gf_form_id']}", array( $this, 'populate_user_email_list' ) );
 			
 			// Add Avatar form field
 			add_filter( 'get_avatar', array( $this, 'get_avatar' ), 10, 5 );
@@ -271,7 +303,7 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
 
 				// If the field is not a dropdown and not the specific class, move onto the next one
 				// This acts as a quick means to filter arguments until we find the one we want
-				if( $field['type'] !== 'select' || strpos($field['cssClass'], 'user-emails') === false )
+				if( $field['type'] !== 'select' || $field['id'] != $this->options['gf_author_field_id'] )
 					continue;
 
 				// The first, "select" option
@@ -334,16 +366,16 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
 			}
 			
 			// Set Post Author, if existing author is chosen
-			if( isset( $entry[ $this->author_conditional_gf_field_id ] ) && $entry[$this->author_conditional_gf_field_id] == "Yes" && isset( $entry[ $this->author_gf_field_id ] ) && !empty( $entry[ $this->author_gf_field_id ] ) ) {
+			if( isset( $entry[ $this->options['gf_author_conditional_field_id'] ] ) && $entry[ $this->options['gf_author_conditional_field_id'] ] == "Yes" && isset( $entry[ $this->options['gf_author_field_id'] ] ) && !empty( $entry[ $this->options['gf_author_field_id'] ] ) ) {
 				// set post author to author field
 				// verify that the id is a valid author
-				if( get_user_by( 'id', $entry[ $this->author_gf_field_id ] ) )
-					$post->post_author = $entry[ $this->author_gf_field_id ];
+				if( get_user_by( 'id', $entry[ $this->options['gf_author_field_id'] ] ) )
+					$post->post_author = $entry[ $this->options['gf_author_field_id'] ];
 			}
 			
 			// Clean up images upload and create array for gallery field
-			if( isset( $entry[$this->images_gf_field_id] ) ) {
-				$images = stripslashes( $entry[$this->images_gf_field_id] );
+			if( isset( $entry[ $this->options['gf_images_field_id'] ] ) ) {
+				$images = stripslashes( $entry[ $this->options['gf_images_field_id'] ] );
 				$images = json_decode( $images, true );
 				if( !empty( $images ) && is_array( $images ) ) {
 					$gallery = array();
@@ -355,7 +387,7 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
 			
 			// Update gallery field with array
 			if( ! empty( $gallery ) ) {
-				update_field( $this->acf_field_id, $gallery, $post->ID );
+				update_field( $this->options['acf_field_id'], $gallery, $post->ID );
 			}
 			
 		    // Updating post
