@@ -453,7 +453,7 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
 					'guid'           => $wp_upload_dir['url'] . '/' . basename( $uploaded_file_path ), 
 					'post_mime_type' => $filetype['type'],
 					'post_title'     => esc_attr( $post_title ),
-					'post_content'   => 'test test',
+					'post_content'   => '',
 					'post_status'    => 'inherit'
 				);
 				
