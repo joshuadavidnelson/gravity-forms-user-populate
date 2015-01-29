@@ -3,7 +3,7 @@
  * Plugin Name: Gravity Forms User Populate Add On
  * Plugin URI: https://github.com/joshuadavidnelson/gravity-forms-user-populate
  * Description: Populate the drop-down menu with users
- * Version: 1.3.0
+ * Version: 1.3.1
  * Author: Joshua David Nelson
  * Author URI: josh@joshuadnelson.com
  * GitHub Plugin URI: https://github.com/joshuadavidnelson/gravity-forms-user-populate
@@ -59,7 +59,7 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
 
  			// Plugin version
  			if ( ! defined( 'GFUP_VERSION' ) ) {
- 				define( 'GFUP_VERSION', '1.3.0' );
+ 				define( 'GFUP_VERSION', '1.3.1' );
  			}
 
  			// Plugin Folder Path
