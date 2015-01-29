@@ -395,9 +395,14 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
 				if( !empty( $images ) && is_array( $images ) ) {
 					$gallery = array();
 					foreach( $images as $key => $value ) {
-						$gallery[] = $this->get_image_id( $value, $post->ID );
+						$image_id = $this->get_image_id( $value, $post->ID );
+						if( $image_id ) {
+							$gallery[] = $image_id;
+						}
 					}
 				}
+			} else {
+				gfup_log_me( 'Images field error' );
 			}
 			
 			// Update gallery field with array
