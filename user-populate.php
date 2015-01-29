@@ -32,6 +32,7 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
 			'gf_images_field_id' => 27, // The Gravity Forms gallery field id
 			'gf_author_field_id' => 23, // The Gravity Forms author id
 			'gf_author_conditional_field_id' => 19, // The Gravity Forms conditional author field id ("yes" if existing author)
+			'gf_author_avatar_field_id' => 22,
 		);
 
  		/**
@@ -103,6 +104,7 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
 				$gfup_options['gf_images_field_id'] = gfup_get_option( 'gf_images_field_id' );
 				$gfup_options['gf_author_field_id'] = gfup_get_option( 'gf_author_field_id' );
 				$gfup_options['gf_author_conditional_field_id'] = gfup_get_option( 'gf_author_conditional_field_id' );
+				$gfup_options['gf_author_avatar_field_id'] = gfup_get_option( 'gf_author_avatar_field_id' );
 				
 				// run through settings and update values as necessary
 				foreach( $this->options as $option => $value ) {
@@ -367,10 +369,19 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
 			
 			// Set Post Author, if existing author is chosen
 			if( isset( $entry[ $this->options['gf_author_conditional_field_id'] ] ) && $entry[ $this->options['gf_author_conditional_field_id'] ] == "Yes" && isset( $entry[ $this->options['gf_author_field_id'] ] ) && !empty( $entry[ $this->options['gf_author_field_id'] ] ) ) {
+				
 				// set post author to author field
 				// verify that the id is a valid author
 				if( get_user_by( 'id', $entry[ $this->options['gf_author_field_id'] ] ) )
 					$post->post_author = $entry[ $this->options['gf_author_field_id'] ];
+				
+			// If it's an existing author, make sure the avatar image is added to the media library
+			} elseif( isset( $entry[ $this->options['gf_author_conditional_field_id'] ] ) && $entry[ $this->options['gf_author_conditional_field_id'] ] != "Yes" && isset( $entry[ $this->options['gf_author_avatar_field_id'] ] ) && !empty( $entry[ $this->options['gf_author_avatar_field_id'] ] ) ) {
+				
+				// add new post author image to media library?
+				$author_image = $this->get_image_id( $entry[ $this->options['gf_author_avatar_field_id'] ], null );
+			} else {
+				gfup_log_me( 'Author field error' );
 			}
 			
 			// Clean up images upload and create array for gallery field
