@@ -420,38 +420,71 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
 		 * @since 1.0.0
 		 * @see http://codex.wordpress.org/Function_Reference/wp_insert_attachment#Example
 		 */
-		function get_image_id( $image_url, $parent_post_id = 0 ) {
-
-			// Check the type of file. We'll use this as the 'post_mime_type'.
-			$filetype = wp_check_filetype( basename( $image_url ), null );
+		function get_image_id( $image_url, $parent_post_id = null ) {
 			
+			if( !isset( $image_url ) )
+				return false;
+			
+			// Cache info on the wp uploads dir
+			$wp_upload_dir = wp_upload_dir();
+
 			// get the file path
 			$path = parse_url( $image_url, PHP_URL_PATH );
 			
-			// Get the path to the upload directory.
-			$wp_upload_dir = wp_upload_dir();
-
-			// Prepare an array of post data for the attachment.
-			$attachment = array(
-				'guid'           => $wp_upload_dir['url'] . '/' . basename( $image_url ), 
-				'post_mime_type' => $filetype['type'],
-				'post_title'     => preg_replace( '/\.[^.]+$/', '', basename( $image_url ) ),
-				'post_content'   => '',
-				'post_status'    => 'inherit'
-			);
-
-			// Insert the attachment.
-			$attach_id = wp_insert_attachment( $attachment, $image_url );
-
-			// Make sure that this file is included, as wp_generate_attachment_metadata() depends on it.
-			require_once( ABSPATH . 'wp-admin/includes/image.php' );
+			// File base name
+			$file_base_name = basename( $image_url );
 			
-			// Generate the metadata for the attachment, and update the database record.
-			$attach_data = wp_generate_attachment_metadata( $attach_id, $path );
-			wp_update_attachment_metadata( $attach_id, $attach_data );
+			// Full path
+			$home_path = get_home_path();
+			$home_path = untrailingslashit( $home_path );
+			$uploaded_file_path = $home_path . $path;
 			
-			return $attach_id; 
-		}
+			// Check the type of file. We'll use this as the 'post_mime_type'.
+			$filetype = wp_check_filetype( $file_base_name, null );
+			
+			// error check
+			if( !empty( $filetype ) && is_array( $filetype ) ) {
+				
+				// Create attachment title
+				$post_title = preg_replace( '/\.[^.]+$/', '', $file_base_name );
+				
+				// Prepare an array of post data for the attachment.
+				$attachment = array(
+					'guid'           => $wp_upload_dir['url'] . '/' . basename( $uploaded_file_path ), 
+					'post_mime_type' => $filetype['type'],
+					'post_title'     => esc_attr( $post_title ),
+					'post_content'   => 'test test',
+					'post_status'    => 'inherit'
+				);
+				
+				// Set the post parent id if there is one
+				if( !is_null( $parent_post_id ) )
+					$attachment['post_parent'] = $parent_post_id;
+
+				// Insert the attachment.
+				$attach_id = wp_insert_attachment( $attachment, $uploaded_file_path );
+
+				//Error check
+				if( !is_wp_error( $attach_id ) ) {
+					//Generate wp attachment meta data
+					if( file_exists( ABSPATH . 'wp-admin/includes/image.php') && file_exists( ABSPATH . 'wp-admin/includes/media.php') ) {
+						require_once( ABSPATH . 'wp-admin/includes/image.php' );
+						require_once( ABSPATH . 'wp-admin/includes/media.php' );
+
+						$attach_data = wp_generate_attachment_metadata( $attach_id, $uploaded_file_path );
+						wp_update_attachment_metadata( $attach_id, $attach_data );
+					} // end if file exists check
+				} else {
+					gfup_log_me( 'Attachment id error' );
+				} // end if error check
+		
+				return $attach_id; 
+			
+			} else {
+				gfup_log_me( 'Filetype error' );
+				return false;
+			} // end if $$filetype
+		} // end function get_image_id
 	} // End of class
 	
 	// Generate class
