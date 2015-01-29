@@ -270,18 +270,22 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
 			// make sure there is an avatar user meta first
 			if ( $avatar ) {
 				$avatar = "<img alt='{$alt}' src='{$avatar}' class='avatar avatar-{$size} photo' height='{$size}' width='{$size}' />";
-			} elseif ( !empty($email) ) {
+				
+			// Otherwise use gravatar, per default
+			} elseif ( !empty( $email ) ) {
 				$out = "$host/avatar/";
 				$out .= $email_hash;
 				$out .= '?s='.$size;
 				$out .= '&amp;d=' . urlencode( $default );
 
-				$rating = get_option('avatar_rating');
+				$rating = get_option( 'avatar_rating' );
 				if ( !empty( $rating ) )
 					$out .= "&amp;r={$rating}";
 
 				$out = str_replace( '&#038;', '&amp;', esc_url( $out ) );
 				$avatar = "<img alt='{$safe_alt}' src='{$out}' class='avatar avatar-{$size} photo' height='{$size}' width='{$size}' />";
+				
+			// If that doesn't work, go with the default avatar
 			} else {
 				$out = esc_url( $default );
 				$avatar = "<img alt='{$safe_alt}' src='{$out}' class='avatar avatar-{$size} photo avatar-default' height='{$size}' width='{$size}' />";
