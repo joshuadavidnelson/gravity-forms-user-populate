@@ -191,7 +191,7 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
 			add_filter( 'get_avatar', array( $this, 'get_avatar' ), 10, 5 );
 			
 			// Set post author and/or gallery images
-			add_filter( 'gform_after_submission_1', array( $this, 'set_post_fields' ), 10, 2 );
+			add_filter( "gform_after_submission_{$this->options['gf_form_id']}", array( $this, 'set_post_fields' ), 9, 2 );
  		}
 		
  		/**
