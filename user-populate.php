@@ -172,7 +172,7 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
 		 */
 		public function deactivate_admin_notice( $message = '', $class = 'error' ) {
 			if( empty( $message ) ) {
-				$message = __( 'GF User Populate has been deactived. It requires Gravity Forms and WP User Avatar plugins', 'gfup' );
+				$message = __( 'GF User Populate has been deactived. It requires Gravity Forms, GF User Registration, and WP User Avatar plugins. Verify they are all installed and active, then attempt reactivation of GF User Populate.', 'gfup' );
 			}
 			echo '<div class="' . $class . '"><p>' . $message . '</p></div>';
 			if ( isset( $_GET['activate'] ) )
