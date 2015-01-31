@@ -435,10 +435,14 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
 			$file_base_name = basename( $image_url );
 			
 			// Full path
-			$home_path = get_home_path();
+			if( defined('GFUP_SUB_DIRECTORY') && GFUP_SUB_DIRECTORY === true ) {
+				$home_path = dirname( dirname( dirname( dirname( dirname( __FILE__ ) ) ) ) );
+			} else {
+				$home_path = dirname( dirname( dirname( dirname( __FILE__ ) ) ) );
+			}
 			$home_path = untrailingslashit( $home_path );
 			$uploaded_file_path = $home_path . $path;
-			
+
 			// Check the type of file. We'll use this as the 'post_mime_type'.
 			$filetype = wp_check_filetype( $file_base_name, null );
 			
