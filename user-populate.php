@@ -25,6 +25,8 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
 		// Main instance variable
 		var $instance;
 		
+		private $user_id = false;
+		
 		// The default options
 		private $options = array(
 			'gf_form_id' => 1, // the gravity form
@@ -131,7 +133,7 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
  		 */
 		public function plugins_loaded() {
 			if( ! $this->is_gfup_supported() ) {
-				$message = __( 'GF User Populate Requires Gravity Forms, GF User Registration and WP User Avatar to be active', 'gfup' );
+				$message = __( 'GF User Populate Requires Gravity Forms, GF User Registration, and Simple Local Avatar to be active', 'gfup' );
 				add_action( 'admin_notices', array( $this, 'deactivate_admin_notice' ) );
 				add_action( 'admin_init', array( $this, 'plugin_deactivate' ) );
 				return;
@@ -147,7 +149,7 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
  		 * @return boolean 
  		 */
 		private static function is_gfup_supported() {
-			if( class_exists( 'WP_User_Avatar' ) && class_exists( 'GFCommon' ) && class_exists( 'GFUser' ) ) {
+			if( class_exists( 'Simple_Local_Avatars' ) && class_exists( 'GFCommon' ) && class_exists( 'GFUser' ) ) {
 				return true;
 			}
 			return false;
@@ -172,7 +174,7 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
 		 */
 		public function deactivate_admin_notice( $message = '', $class = 'error' ) {
 			if( empty( $message ) ) {
-				$message = __( 'GF User Populate has been deactived. It requires Gravity Forms, GF User Registration, and WP User Avatar plugins. Verify they are all installed and active, then attempt reactivation of GF User Populate.', 'gfup' );
+				$message = __( 'GF User Populate has been deactived. It requires Gravity Forms, GF User Registration, and Simple Local Avatars plugins. Verify they are all installed and active, then attempt reactivation of GF User Populate.', 'gfup' );
 			}
 			echo '<div class="' . $class . '"><p>' . $message . '</p></div>';
 			if ( isset( $_GET['activate'] ) )
@@ -189,109 +191,23 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
  			// Gravity form custom dropdown and routing
  			add_filter( "gform_pre_render_{$this->options['gf_form_id']}", array( $this, 'populate_user_email_list' ) );
 			
-			// Add Avatar form field
-			add_filter( 'get_avatar', array( $this, 'get_avatar' ), 10, 5 );
+			// Set user id for use after submission
+			add_action( 'gform_user_registered', array( $this, 'add_custom_user_meta' ), 10, 4 );
 			
 			// Set post author and/or gallery images
-			add_filter( "gform_after_submission_{$this->options['gf_form_id']}", array( $this, 'set_post_fields' ), 9, 2 );
+			add_filter( "gform_after_submission_{$this->options['gf_form_id']}", array( $this, 'set_post_fields' ), 10, 2 );
  		}
 		
  		/**
- 		 * Filter the avatar.
-		 *
-		 * Does the same checks as get_avatar (see wp-includes/pluggable.php), but replaces
-		 * said avatar with the user meta field, if present
+ 		 * Sets the new user's user id
  		 *
- 		 * @since 1.0.0
- 		 * @access public
+ 		 * @since 1.4.0
  		 * @return void
  		 */
-		public function get_avatar( $avatar, $id_or_email, $size, $default, $alt ) {
-				
-			$user = false;
-			// get the user
-			if ( is_numeric( $id_or_email ) ) {
-				$id = (int) $id_or_email;
-				$user = get_user_by( 'id' , $id );
-			} elseif ( is_object( $id_or_email ) ) {
-				if ( ! empty( $id_or_email->user_id ) ) {
-					$id = (int) $id_or_email->user_id;
-					$user = get_user_by( 'id' , $id );
-				}
-			} else {
-				$user = get_user_by( 'email', $id_or_email );	
+		function add_custom_user_meta( $user_id, $config, $entry, $user_pass ) {
+    		if( isset( $entry[ $this->options['gf_author_conditional_field_id'] ] ) && $entry[ $this->options['gf_author_conditional_field_id'] ] != "Yes" && isset( $entry[ $this->options['gf_author_avatar_field_id'] ] ) && !empty( $entry[ $this->options['gf_author_avatar_field_id'] ] ) ) {
+				$this->user_id = $user_id;
 			}
-			
-			// ------- Taken from wp-includes/pluggable.php:get_avatar() ------ //
-			if ( empty($default) ) {
-				$avatar_default = get_option('avatar_default');
-				if ( empty($avatar_default) )
-					$default = 'mystery';
-				else
-					$default = $avatar_default;
-			}
-			
-			if ( false === $alt)
-				$safe_alt = '';
-			else
-				$safe_alt = esc_attr( $alt );
-
-			if ( !empty($email) )
-				$email_hash = md5( strtolower( trim( $email ) ) );
-
-			if ( is_ssl() ) {
-				$host = 'https://secure.gravatar.com';
-			} else {
-				if ( !empty($email) )
-					$host = sprintf( "http://%d.gravatar.com", ( hexdec( $email_hash[0] ) % 2 ) );
-				else
-					$host = 'http://0.gravatar.com';
-			}
-
-			if ( 'mystery' == $default )
-				$default = "$host/avatar/ad516503a11cd5ca435acc9bb6523536?s={$size}"; // ad516503a11cd5ca435acc9bb6523536 == md5('unknown@gravatar.com')
-			elseif ( 'blank' == $default )
-				$default = $email ? 'blank' : includes_url( 'images/blank.gif' );
-			elseif ( !empty($email) && 'gravatar_default' == $default )
-				$default = '';
-			elseif ( 'gravatar_default' == $default )
-				$default = "$host/avatar/?s={$size}";
-			elseif ( empty($email) )
-				$default = "$host/avatar/?d=$default&amp;s={$size}";
-			elseif ( strpos($default, 'http://') === 0 )
-				$default = add_query_arg( 's', $size, $default );
-
-			// if we have a user, set the avatar based on WP_User_Avatar
-			if( $user && is_object( $user ) ) {
-				global $blog_id, $wpdb;
-				$avatar = esc_url( get_user_meta( $user->data->ID, $wpdb->get_blog_prefix( $blog_id ) . 'user_avatar', true ) );
-			}
-			
-			// make sure there is an avatar user meta first
-			if ( $avatar ) {
-				$avatar = "<img alt='{$alt}' src='{$avatar}' class='avatar avatar-{$size} photo' height='{$size}' width='{$size}' />";
-				
-			// Otherwise use gravatar, per default
-			} elseif ( !empty( $email ) ) {
-				$out = "$host/avatar/";
-				$out .= $email_hash;
-				$out .= '?s='.$size;
-				$out .= '&amp;d=' . urlencode( $default );
-
-				$rating = get_option( 'avatar_rating' );
-				if ( !empty( $rating ) )
-					$out .= "&amp;r={$rating}";
-
-				$out = str_replace( '&#038;', '&amp;', esc_url( $out ) );
-				$avatar = "<img alt='{$safe_alt}' src='{$out}' class='avatar avatar-{$size} photo' height='{$size}' width='{$size}' />";
-				
-			// If that doesn't work, go with the default avatar
-			} else {
-				$out = esc_url( $default );
-				$avatar = "<img alt='{$safe_alt}' src='{$out}' class='avatar avatar-{$size} photo avatar-default' height='{$size}' width='{$size}' />";
-			}
-			
-			return $avatar;
 		}
 		
  		/**
@@ -382,8 +298,18 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
 			// If it's an existing author, make sure the avatar image is added to the media library
 			} elseif( isset( $entry[ $this->options['gf_author_conditional_field_id'] ] ) && $entry[ $this->options['gf_author_conditional_field_id'] ] != "Yes" && isset( $entry[ $this->options['gf_author_avatar_field_id'] ] ) && !empty( $entry[ $this->options['gf_author_avatar_field_id'] ] ) ) {
 				
-				// add new post author image to media library?
+				// add new post author image to media library and set simple local avatar
 				$author_image = $this->get_image_id( $entry[ $this->options['gf_author_avatar_field_id'] ], null );
+				if( $author_image && $this->user_id ) {
+					$meta_value =  array(
+						'media_id' => $author_image,
+						'full' => wp_get_attachment_url( $author_image ),
+					);
+					update_user_meta( $this->user_id, 'simple_local_avatar', $meta_value );
+				} else {
+					gfup_log_me( 'No avatar set' );
+				}
+				
 			} else {
 				gfup_log_me( 'Author field error' );
 			}
