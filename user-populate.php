@@ -3,7 +3,7 @@
  * Plugin Name: Gravity Forms User Populate Add On
  * Plugin URI: https://github.com/joshuadavidnelson/gravity-forms-user-populate
  * Description: Populate the drop-down menu with users
- * Version: 1.2.1
+ * Version: 1.4.0
  * Author: Joshua David Nelson
  * Author URI: josh@joshuadnelson.com
  * GitHub Plugin URI: https://github.com/joshuadavidnelson/gravity-forms-user-populate
@@ -25,6 +25,8 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
 		// Main instance variable
 		var $instance;
 		
+		private $user_id = false;
+		
 		// The default options
 		private $options = array(
 			'gf_form_id' => 1, // the gravity form
@@ -32,6 +34,7 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
 			'gf_images_field_id' => 27, // The Gravity Forms gallery field id
 			'gf_author_field_id' => 23, // The Gravity Forms author id
 			'gf_author_conditional_field_id' => 19, // The Gravity Forms conditional author field id ("yes" if existing author)
+			'gf_author_avatar_field_id' => 22,
 		);
 
  		/**
@@ -58,7 +61,7 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
 
  			// Plugin version
  			if ( ! defined( 'GFUP_VERSION' ) ) {
- 				define( 'GFUP_VERSION', '1.2.1' );
+ 				define( 'GFUP_VERSION', '1.4.0' );
  			}
 
  			// Plugin Folder Path
@@ -90,7 +93,7 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
  			add_action( 'plugins_loaded', array( $this, 'init' ) );
 			
 			// include metabox and settings page
-			if ( file_exists(  GFUP_DIR . '/includes/metabox/init.php' ) ) {
+			if ( file_exists( GFUP_DIR . '/includes/metabox/init.php' ) ) {
 				require_once( GFUP_DIR . '/includes/metabox/init.php' );
 				require_once( GFUP_DIR . '/includes/settings.php');
 			}
@@ -103,6 +106,7 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
 				$gfup_options['gf_images_field_id'] = gfup_get_option( 'gf_images_field_id' );
 				$gfup_options['gf_author_field_id'] = gfup_get_option( 'gf_author_field_id' );
 				$gfup_options['gf_author_conditional_field_id'] = gfup_get_option( 'gf_author_conditional_field_id' );
+				$gfup_options['gf_author_avatar_field_id'] = gfup_get_option( 'gf_author_avatar_field_id' );
 				
 				// run through settings and update values as necessary
 				foreach( $this->options as $option => $value ) {
@@ -129,7 +133,7 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
  		 */
 		public function plugins_loaded() {
 			if( ! $this->is_gfup_supported() ) {
-				$message = __( 'GF User Populate Requires Gravity Forms, GF User Registration and WP User Avatar to be active', 'gfup' );
+				$message = __( 'GF User Populate Requires Gravity Forms, GF User Registration, and Simple Local Avatar to be active', 'gfup' );
 				add_action( 'admin_notices', array( $this, 'deactivate_admin_notice' ) );
 				add_action( 'admin_init', array( $this, 'plugin_deactivate' ) );
 				return;
@@ -145,7 +149,7 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
  		 * @return boolean 
  		 */
 		private static function is_gfup_supported() {
-			if( class_exists( 'WP_User_Avatar' ) && class_exists( 'GFCommon' ) && class_exists( 'GFUser' ) ) {
+			if( class_exists( 'Simple_Local_Avatars' ) && class_exists( 'GFCommon' ) && class_exists( 'GFUser' ) ) {
 				return true;
 			}
 			return false;
@@ -170,7 +174,7 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
 		 */
 		public function deactivate_admin_notice( $message = '', $class = 'error' ) {
 			if( empty( $message ) ) {
-				$message = __( 'GF User Populate has been deactived. It requires Gravity Forms and WP User Avatar plugins', 'gfup' );
+				$message = __( 'GF User Populate has been deactived. It requires Gravity Forms, GF User Registration, and Simple Local Avatars plugins. Verify they are all installed and active, then attempt reactivation of GF User Populate.', 'gfup' );
 			}
 			echo '<div class="' . $class . '"><p>' . $message . '</p></div>';
 			if ( isset( $_GET['activate'] ) )
@@ -187,105 +191,23 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
  			// Gravity form custom dropdown and routing
  			add_filter( "gform_pre_render_{$this->options['gf_form_id']}", array( $this, 'populate_user_email_list' ) );
 			
-			// Add Avatar form field
-			add_filter( 'get_avatar', array( $this, 'get_avatar' ), 10, 5 );
+			// Set user id for use after submission
+			add_action( 'gform_user_registered', array( $this, 'add_custom_user_meta' ), 10, 4 );
 			
 			// Set post author and/or gallery images
-			add_filter( 'gform_after_submission_1', array( $this, 'set_post_fields' ), 10, 2 );
+			add_filter( "gform_after_submission_{$this->options['gf_form_id']}", array( $this, 'set_post_fields' ), 10, 2 );
  		}
 		
  		/**
- 		 * Filter the avatar.
-		 *
-		 * Does the same checks as get_avatar (see wp-includes/pluggable.php), but replaces
-		 * said avatar with the user meta field, if present
+ 		 * Sets the new user's user id
  		 *
- 		 * @since 1.0.0
- 		 * @access public
+ 		 * @since 1.4.0
  		 * @return void
  		 */
-		public function get_avatar( $avatar, $id_or_email, $size, $default, $alt ) {
-				
-			$user = false;
-			// get the user
-			if ( is_numeric( $id_or_email ) ) {
-				$id = (int) $id_or_email;
-				$user = get_user_by( 'id' , $id );
-			} elseif ( is_object( $id_or_email ) ) {
-				if ( ! empty( $id_or_email->user_id ) ) {
-					$id = (int) $id_or_email->user_id;
-					$user = get_user_by( 'id' , $id );
-				}
-			} else {
-				$user = get_user_by( 'email', $id_or_email );	
+		function add_custom_user_meta( $user_id, $config, $entry, $user_pass ) {
+    		if( isset( $entry[ $this->options['gf_author_conditional_field_id'] ] ) && $entry[ $this->options['gf_author_conditional_field_id'] ] != "Yes" && isset( $entry[ $this->options['gf_author_avatar_field_id'] ] ) && !empty( $entry[ $this->options['gf_author_avatar_field_id'] ] ) ) {
+				$this->user_id = $user_id;
 			}
-			
-			// ------- Taken from wp-includes/pluggable.php:get_avatar() ------ //
-			if ( empty($default) ) {
-				$avatar_default = get_option('avatar_default');
-				if ( empty($avatar_default) )
-					$default = 'mystery';
-				else
-					$default = $avatar_default;
-			}
-			
-			if ( false === $alt)
-				$safe_alt = '';
-			else
-				$safe_alt = esc_attr( $alt );
-
-			if ( !empty($email) )
-				$email_hash = md5( strtolower( trim( $email ) ) );
-
-			if ( is_ssl() ) {
-				$host = 'https://secure.gravatar.com';
-			} else {
-				if ( !empty($email) )
-					$host = sprintf( "http://%d.gravatar.com", ( hexdec( $email_hash[0] ) % 2 ) );
-				else
-					$host = 'http://0.gravatar.com';
-			}
-
-			if ( 'mystery' == $default )
-				$default = "$host/avatar/ad516503a11cd5ca435acc9bb6523536?s={$size}"; // ad516503a11cd5ca435acc9bb6523536 == md5('unknown@gravatar.com')
-			elseif ( 'blank' == $default )
-				$default = $email ? 'blank' : includes_url( 'images/blank.gif' );
-			elseif ( !empty($email) && 'gravatar_default' == $default )
-				$default = '';
-			elseif ( 'gravatar_default' == $default )
-				$default = "$host/avatar/?s={$size}";
-			elseif ( empty($email) )
-				$default = "$host/avatar/?d=$default&amp;s={$size}";
-			elseif ( strpos($default, 'http://') === 0 )
-				$default = add_query_arg( 's', $size, $default );
-
-			// if we have a user, set the avatar based on WP_User_Avatar
-			if( $user && is_object( $user ) ) {
-				global $blog_id, $wpdb;
-				$avatar = esc_url( get_user_meta( $user->data->ID, $wpdb->get_blog_prefix( $blog_id ) . 'user_avatar', true ) );
-			}
-			
-			// make sure there is an avatar user meta first
-			if ( $avatar ) {
-				$avatar = "<img alt='{$alt}' src='{$avatar}' class='avatar avatar-{$size} photo' height='{$size}' width='{$size}' />";
-			} elseif ( !empty($email) ) {
-				$out = "$host/avatar/";
-				$out .= $email_hash;
-				$out .= '?s='.$size;
-				$out .= '&amp;d=' . urlencode( $default );
-
-				$rating = get_option('avatar_rating');
-				if ( !empty( $rating ) )
-					$out .= "&amp;r={$rating}";
-
-				$out = str_replace( '&#038;', '&amp;', esc_url( $out ) );
-				$avatar = "<img alt='{$safe_alt}' src='{$out}' class='avatar avatar-{$size} photo' height='{$size}' width='{$size}' />";
-			} else {
-				$out = esc_url( $default );
-				$avatar = "<img alt='{$safe_alt}' src='{$out}' class='avatar avatar-{$size} photo avatar-default' height='{$size}' width='{$size}' />";
-			}
-			
-			return $avatar;
 		}
 		
  		/**
@@ -367,10 +289,29 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
 			
 			// Set Post Author, if existing author is chosen
 			if( isset( $entry[ $this->options['gf_author_conditional_field_id'] ] ) && $entry[ $this->options['gf_author_conditional_field_id'] ] == "Yes" && isset( $entry[ $this->options['gf_author_field_id'] ] ) && !empty( $entry[ $this->options['gf_author_field_id'] ] ) ) {
+				
 				// set post author to author field
 				// verify that the id is a valid author
 				if( get_user_by( 'id', $entry[ $this->options['gf_author_field_id'] ] ) )
 					$post->post_author = $entry[ $this->options['gf_author_field_id'] ];
+				
+			// If it's an existing author, make sure the avatar image is added to the media library
+			} elseif( isset( $entry[ $this->options['gf_author_conditional_field_id'] ] ) && $entry[ $this->options['gf_author_conditional_field_id'] ] != "Yes" && isset( $entry[ $this->options['gf_author_avatar_field_id'] ] ) && !empty( $entry[ $this->options['gf_author_avatar_field_id'] ] ) ) {
+				
+				// add new post author image to media library and set simple local avatar
+				$author_image = $this->get_image_id( $entry[ $this->options['gf_author_avatar_field_id'] ], null );
+				if( $author_image && $this->user_id ) {
+					$meta_value =  array(
+						'media_id' => $author_image,
+						'full' => wp_get_attachment_url( $author_image ),
+					);
+					update_user_meta( $this->user_id, 'simple_local_avatar', $meta_value );
+				} else {
+					gfup_log_me( 'No avatar set' );
+				}
+				
+			} else {
+				gfup_log_me( 'Author field error' );
 			}
 			
 			// Clean up images upload and create array for gallery field
@@ -380,9 +321,14 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
 				if( !empty( $images ) && is_array( $images ) ) {
 					$gallery = array();
 					foreach( $images as $key => $value ) {
-						$gallery[] = $this->get_image_id( $value, $post->ID );
+						$image_id = $this->get_image_id( $value, $post->ID );
+						if( $image_id ) {
+							$gallery[] = $image_id;
+						}
 					}
 				}
+			} else {
+				gfup_log_me( 'Images field error' );
 			}
 			
 			// Update gallery field with array
@@ -400,38 +346,75 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
 		 * @since 1.0.0
 		 * @see http://codex.wordpress.org/Function_Reference/wp_insert_attachment#Example
 		 */
-		function get_image_id( $image_url, $parent_post_id = 0 ) {
-
-			// Check the type of file. We'll use this as the 'post_mime_type'.
-			$filetype = wp_check_filetype( basename( $image_url ), null );
+		function get_image_id( $image_url, $parent_post_id = null ) {
 			
+			if( !isset( $image_url ) )
+				return false;
+			
+			// Cache info on the wp uploads dir
+			$wp_upload_dir = wp_upload_dir();
+
 			// get the file path
 			$path = parse_url( $image_url, PHP_URL_PATH );
 			
-			// Get the path to the upload directory.
-			$wp_upload_dir = wp_upload_dir();
-
-			// Prepare an array of post data for the attachment.
-			$attachment = array(
-				'guid'           => $wp_upload_dir['url'] . '/' . basename( $image_url ), 
-				'post_mime_type' => $filetype['type'],
-				'post_title'     => preg_replace( '/\.[^.]+$/', '', basename( $image_url ) ),
-				'post_content'   => '',
-				'post_status'    => 'inherit'
-			);
-
-			// Insert the attachment.
-			$attach_id = wp_insert_attachment( $attachment, $image_url );
-
-			// Make sure that this file is included, as wp_generate_attachment_metadata() depends on it.
-			require_once( ABSPATH . 'wp-admin/includes/image.php' );
+			// File base name
+			$file_base_name = basename( $image_url );
 			
-			// Generate the metadata for the attachment, and update the database record.
-			$attach_data = wp_generate_attachment_metadata( $attach_id, $path );
-			wp_update_attachment_metadata( $attach_id, $attach_data );
+			// Full path
+			if( defined('GFUP_SUB_DIRECTORY') && GFUP_SUB_DIRECTORY === true ) {
+				$home_path = dirname( dirname( dirname( dirname( dirname( __FILE__ ) ) ) ) );
+			} else {
+				$home_path = dirname( dirname( dirname( dirname( __FILE__ ) ) ) );
+			}
+			$home_path = untrailingslashit( $home_path );
+			$uploaded_file_path = $home_path . $path;
+
+			// Check the type of file. We'll use this as the 'post_mime_type'.
+			$filetype = wp_check_filetype( $file_base_name, null );
 			
-			return $attach_id; 
-		}
+			// error check
+			if( !empty( $filetype ) && is_array( $filetype ) ) {
+				
+				// Create attachment title
+				$post_title = preg_replace( '/\.[^.]+$/', '', $file_base_name );
+				
+				// Prepare an array of post data for the attachment.
+				$attachment = array(
+					'guid'           => $wp_upload_dir['url'] . '/' . basename( $uploaded_file_path ), 
+					'post_mime_type' => $filetype['type'],
+					'post_title'     => esc_attr( $post_title ),
+					'post_content'   => 'test test',
+					'post_status'    => 'inherit'
+				);
+				
+				// Set the post parent id if there is one
+				if( !is_null( $parent_post_id ) )
+					$attachment['post_parent'] = $parent_post_id;
+
+				// Insert the attachment.
+				$attach_id = wp_insert_attachment( $attachment, $uploaded_file_path );
+
+				//Error check
+				if( !is_wp_error( $attach_id ) ) {
+					//Generate wp attachment meta data
+					if( file_exists( ABSPATH . 'wp-admin/includes/image.php') && file_exists( ABSPATH . 'wp-admin/includes/media.php') ) {
+						require_once( ABSPATH . 'wp-admin/includes/image.php' );
+						require_once( ABSPATH . 'wp-admin/includes/media.php' );
+
+						$attach_data = wp_generate_attachment_metadata( $attach_id, $uploaded_file_path );
+						wp_update_attachment_metadata( $attach_id, $attach_data );
+					} // end if file exists check
+				} else {
+					gfup_log_me( 'Attachment id error' );
+				} // end if error check
+		
+				return $attach_id; 
+			
+			} else {
+				gfup_log_me( 'Filetype error' );
+				return false;
+			} // end if $$filetype
+		} // end function get_image_id
 	} // End of class
 	
 	// Generate class

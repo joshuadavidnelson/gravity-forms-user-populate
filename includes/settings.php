@@ -140,15 +140,21 @@ class GFUP_Settings {
 				    'type'    => 'text_small'
 				),
 				array(
-				    'name'    => 'GF Author Field ID',
-					'description' => 'The Gravity Form field id for the author drop down',
+				    'name'    => 'GF Author Conditional Field ID',
+					'description' => 'This field should be a condition with "yes" or "no" options, where "yes" means it is an existing author',
+				    'id'      => 'gf_author_conditional_field_id',
+				    'type'    => 'text_small'
+				),
+				array(
+				    'name'    => 'GF Existing Author Field ID',
+					'description' => 'The Gravity Form field id for the existing author drop down',
 				    'id'      => 'gf_author_field_id',
 				    'type'    => 'text_small'
 				),
 				array(
-				    'name'    => 'GF Author Conditional Field ID',
-					'description' => 'This field should be a condition with "yes" or "no" options, where "yes" means it is an existing author',
-				    'id'      => 'gf_author_conditional_field_id',
+				    'name'    => 'GF New Author Avatar Field ID',
+					'description' => 'This field is for the new author avatar image upload',
+				    'id'      => 'gf_author_avatar_field_id',
 				    'type'    => 'text_small'
 				),
 			),
