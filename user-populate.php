@@ -303,16 +303,7 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
 				// add new post author image to media library and set simple local avatar
 				$author_image = $this->get_image_id( $entry[ $this->options['gf_author_avatar_field_id'] ], null );
 				if( $author_image && $this->user_id ) {
-					$meta_value =  array(
-						'media_id' => $author_image,
-						'full' => wp_get_attachment_url( $author_image ),
-					);
-					//update_user_meta( $this->user_id, 'simple_local_avatar', $meta_value );
 					update_field( $this->options['acf_avatar_field_id'], $author_image, 'user_'. $this->user_id );
-					gfup_log_me( $this->options['acf_avatar_field_id'] );
-					gfup_log_me( 'meta value ' );
-					gfup_log_me( $meta_value );
-					gfup_log_me( 'user id ' . $this->user_id );
 				} else {
 					gfup_log_me( 'No avatar set' );
 				}
