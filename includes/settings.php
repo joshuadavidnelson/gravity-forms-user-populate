@@ -128,9 +128,15 @@ class GFUP_Settings {
 				    'type'    => 'text_small',
 				),
 				array(
-				    'name'    => 'ACF Field ID',
+				    'name'    => 'ACF Gallery Field ID',
 					'description' => 'The field id (like "field_546d0ad42e7f0") for the ACF Gallery Field',
 				    'id'      => 'acf_field_id',
+				    'type'    => 'text_medium'
+				),
+				array(
+				    'name'    => 'ACF Avatar Field ID',
+					'description' => 'The field id (like "field_546d0ad42e7f0") for the ACF Avatar Field',
+				    'id'      => 'acf_avatar_field_id',
 				    'type'    => 'text_medium'
 				),
 				array(
