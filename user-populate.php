@@ -3,7 +3,7 @@
  * Plugin Name: Gravity Forms User Populate Add On
  * Plugin URI: https://github.com/joshuadavidnelson/gravity-forms-user-populate
  * Description: Populate the drop-down menu with users
- * Version: 1.4.0
+ * Version: 1.5.0
  * Author: Joshua David Nelson
  * Author URI: josh@joshuadnelson.com
  * GitHub Plugin URI: https://github.com/joshuadavidnelson/gravity-forms-user-populate
@@ -35,6 +35,7 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
 			'gf_author_field_id' => 23, // The Gravity Forms author id
 			'gf_author_conditional_field_id' => 19, // The Gravity Forms conditional author field id ("yes" if existing author)
 			'gf_author_avatar_field_id' => 22,
+			'acf_avatar_field_id' => 'field_55b4095067ec4',
 		);
 
  		/**
@@ -61,7 +62,7 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
 
  			// Plugin version
  			if ( ! defined( 'GFUP_VERSION' ) ) {
- 				define( 'GFUP_VERSION', '1.4.0' );
+ 				define( 'GFUP_VERSION', '1.5.0' );
  			}
 
  			// Plugin Folder Path
@@ -107,6 +108,7 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
 				$gfup_options['gf_author_field_id'] = gfup_get_option( 'gf_author_field_id' );
 				$gfup_options['gf_author_conditional_field_id'] = gfup_get_option( 'gf_author_conditional_field_id' );
 				$gfup_options['gf_author_avatar_field_id'] = gfup_get_option( 'gf_author_avatar_field_id' );
+				$gfup_options['acf_avatar_field_id'] = gfup_get_option( 'acf_avatar_field_id' );
 				
 				// run through settings and update values as necessary
 				foreach( $this->options as $option => $value ) {
@@ -133,7 +135,7 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
  		 */
 		public function plugins_loaded() {
 			if( ! $this->is_gfup_supported() ) {
-				$message = __( 'GF User Populate Requires Gravity Forms, GF User Registration, and Simple Local Avatar to be active', 'gfup' );
+				$message = __( 'GF User Populate Requires Gravity Forms and GF User Registration to be active', 'gfup' );
 				add_action( 'admin_notices', array( $this, 'deactivate_admin_notice' ) );
 				add_action( 'admin_init', array( $this, 'plugin_deactivate' ) );
 				return;
@@ -149,7 +151,7 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
  		 * @return boolean 
  		 */
 		private static function is_gfup_supported() {
-			if( class_exists( 'Simple_Local_Avatars' ) && class_exists( 'GFCommon' ) && class_exists( 'GFUser' ) ) {
+			if( class_exists( 'GFCommon' ) && class_exists( 'GFUser' ) ) {
 				return true;
 			}
 			return false;
@@ -174,7 +176,7 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
 		 */
 		public function deactivate_admin_notice( $message = '', $class = 'error' ) {
 			if( empty( $message ) ) {
-				$message = __( 'GF User Populate has been deactived. It requires Gravity Forms, GF User Registration, and Simple Local Avatars plugins. Verify they are all installed and active, then attempt reactivation of GF User Populate.', 'gfup' );
+				$message = __( 'GF User Populate has been deactived. It requires Gravity Forms and GF User Registration plugins. Verify they are all installed and active, then attempt reactivation of GF User Populate.', 'gfup' );
 			}
 			echo '<div class="' . $class . '"><p>' . $message . '</p></div>';
 			if ( isset( $_GET['activate'] ) )
@@ -305,7 +307,12 @@ if( ! class_exists( 'GF_User_Populate' ) ) {
 						'media_id' => $author_image,
 						'full' => wp_get_attachment_url( $author_image ),
 					);
-					update_user_meta( $this->user_id, 'simple_local_avatar', $meta_value );
+					//update_user_meta( $this->user_id, 'simple_local_avatar', $meta_value );
+					update_field( $this->options['acf_avatar_field_id'], $author_image, 'user_'. $this->user_id );
+					gfup_log_me( $this->options['acf_avatar_field_id'] );
+					gfup_log_me( 'meta value ' );
+					gfup_log_me( $meta_value );
+					gfup_log_me( 'user id ' . $this->user_id );
 				} else {
 					gfup_log_me( 'No avatar set' );
 				}
