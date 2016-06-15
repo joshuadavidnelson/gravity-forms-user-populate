@@ -4,7 +4,7 @@ Donate link: http://jdn.im/donate
 Tags: gravity forms, users
 Requires at least: 3.6
 Tested up to: 4.1
-Stable tag: 1.4.0
+Stable tag: 1.5.1
 
 Adds the ability to auto populate a form field with usernames
 
@@ -21,6 +21,12 @@ Adds the ability to auto populate a form field with usernames
 
 
 == Changelog ==
+
+= 1.5.1 (2015-01-30) =
+* Remove unnecessary error logging and update readme files.
+
+= 1.5.0 (2015-01-30) =
+* Remove Simple Avatar Plugin Dependency
 
 = 1.4.0 (2015-01-30) =
 * Fix user avatar image, change to Simple Local Avatar support
